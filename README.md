@@ -167,6 +167,14 @@ http://localhost:8001/?demo
 
 # Clear display
 http://localhost:8001/?clear
+
+# Disable sound (sound is enabled by default)
+http://localhost:8001/?sound=false
+http://localhost:8001/?sound=off
+http://localhost:8001/?sound=0
+
+# Enable sound explicitly
+http://localhost:8001/?sound=true
 ```
 
 ### 📨 PostMessage API (iframe)
@@ -201,7 +209,9 @@ All lowercase input is automatically converted to uppercase.
 
 ## 🔊 Sound
 
-The display includes realistic mechanical clicking sounds generated using the Web Audio API. Sound is automatically enabled after the first user interaction with the page.
+The display includes realistic mechanical clicking sounds generated using the Web Audio API. Sound is **enabled by default** and tries to activate immediately when the page loads.
+
+To disable sound, use the URL parameter: `?sound=false`
 
 ## 📱 Responsive Design
 

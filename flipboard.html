@@ -547,15 +547,25 @@
             }
         });
 
-        // Enable audio on first user interaction or API call
+        // Enable audio immediately or on first interaction
         function ensureAudioContext() {
             if (soundEnabled && !audioContext) {
                 initAudio();
             }
         }
 
-        document.addEventListener('click', ensureAudioContext, { once: true });
-        document.addEventListener('keydown', ensureAudioContext, { once: true });
+        // Try to enable audio immediately
+        function tryEnableAudioImmediately() {
+            try {
+                if (soundEnabled && !audioContext) {
+                    initAudio();
+                }
+            } catch (e) {
+                // If immediate audio fails, wait for user interaction
+                document.addEventListener('click', ensureAudioContext, { once: true });
+                document.addEventListener('keydown', ensureAudioContext, { once: true });
+            }
+        }
 
         // API Functions
         window.splitflapAPI = {
@@ -612,6 +622,24 @@
         // HTTP API via URL parameters
         function handleURLParams() {
             const params = new URLSearchParams(window.location.search);
+
+            // Check sound parameter
+            if (params.has('sound')) {
+                const soundParam = params.get('sound').toLowerCase();
+                soundEnabled = soundParam !== 'false' && soundParam !== '0' && soundParam !== 'off';
+
+                // Update sound toggle button if it exists
+                const soundToggle = document.getElementById('soundToggle');
+                if (soundToggle) {
+                    if (soundEnabled) {
+                        soundToggle.textContent = '🔊 Sound';
+                        soundToggle.classList.remove('muted');
+                    } else {
+                        soundToggle.textContent = '🔇 Stumm';
+                        soundToggle.classList.add('muted');
+                    }
+                }
+            }
 
             if (params.has('line1') || params.has('line2') || params.has('line3') ||
                 params.has('line4') || params.has('line5') || params.has('line6')) {
@@ -709,10 +737,8 @@
             // Connect to server for API commands
             connectToServer();
 
-            // Try to initialize audio immediately for better API support
-            setTimeout(() => {
-                ensureAudioContext();
-            }, 500);
+            // Try to enable audio immediately
+            tryEnableAudioImmediately();
 
             // Default welcome sequence if no URL params
             if (!window.location.search) {
