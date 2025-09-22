@@ -25,10 +25,10 @@ cd splitflap
 
 ### 2. Start the Server
 ```bash
-# Using the start script
+# Using the start script (default port 8000)
 ./start_server.sh
 
-# Or directly with Python
+# Or directly with Python (custom port)
 python3 simple_server.py 8001
 ```
 
@@ -226,7 +226,6 @@ splitflap/
 ├── CLAUDE.md             # Development documentation
 ├── flipboard.html        # Main display application
 ├── simple_server.py      # HTTP API server
-├── server.py             # Alternative server implementation
 └── start_server.sh       # Quick start script
 ```
 
