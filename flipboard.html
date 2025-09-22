@@ -320,47 +320,72 @@
 
         // Generate realistic mechanical click sound
         function playClickSound() {
-            if (!soundEnabled || !audioContext) return;
-            
+            if (!soundEnabled) {
+                console.log('Sound disabled');
+                return;
+            }
+
+            if (!audioContext) {
+                console.log('No audio context available');
+                return;
+            }
+
+            if (audioContext.state === 'suspended') {
+                console.log('Audio context suspended, trying to resume...');
+                audioContext.resume().then(() => {
+                    console.log('Audio context resumed, playing sound');
+                    playActualSound();
+                }).catch(e => {
+                    console.log('Failed to resume audio context:', e);
+                });
+                return;
+            }
+
+            playActualSound();
+        }
+
+        function playActualSound() {
             try {
                 // Create multiple oscillators for a more complex sound
                 const oscillator1 = audioContext.createOscillator();
                 const oscillator2 = audioContext.createOscillator();
                 const gainNode = audioContext.createGain();
                 const filter = audioContext.createBiquadFilter();
-                
+
                 // Mix oscillators
                 oscillator1.connect(filter);
                 oscillator2.connect(filter);
                 filter.connect(gainNode);
                 gainNode.connect(audioContext.destination);
-                
+
                 // Configure filter for more realistic sound
                 filter.type = 'bandpass';
                 filter.frequency.setValueAtTime(1200, audioContext.currentTime);
                 filter.Q.setValueAtTime(5, audioContext.currentTime);
-                
+
                 // Primary click frequency
                 oscillator1.type = 'square';
                 oscillator1.frequency.setValueAtTime(1000, audioContext.currentTime);
                 oscillator1.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.05);
-                
+
                 // Secondary harmonic
                 oscillator2.type = 'sawtooth';
                 oscillator2.frequency.setValueAtTime(2000, audioContext.currentTime);
                 oscillator2.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.03);
-                
+
                 // Sharp attack, quick decay
                 gainNode.gain.setValueAtTime(0, audioContext.currentTime);
                 gainNode.gain.linearRampToValueAtTime(0.15, audioContext.currentTime + 0.01);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.08);
-                
+
                 const now = audioContext.currentTime;
                 oscillator1.start(now);
                 oscillator1.stop(now + 0.08);
                 oscillator2.start(now);
                 oscillator2.stop(now + 0.05);
-                
+
+                console.log('Sound played successfully');
+
             } catch (e) {
                 console.log('Sound generation failed:', e);
             }
@@ -556,15 +581,41 @@
 
         // Try to enable audio immediately
         function tryEnableAudioImmediately() {
+            if (!soundEnabled) return;
+
             try {
-                if (soundEnabled && !audioContext) {
-                    initAudio();
+                // Try to create audio context immediately
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    console.log('Audio context created immediately');
+                }
+
+                // Test if audio context is allowed to start
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume().then(() => {
+                        console.log('Audio context resumed successfully');
+                    }).catch(() => {
+                        console.log('Audio context resume failed, waiting for user interaction');
+                        setupUserInteractionListeners();
+                    });
                 }
             } catch (e) {
-                // If immediate audio fails, wait for user interaction
-                document.addEventListener('click', ensureAudioContext, { once: true });
-                document.addEventListener('keydown', ensureAudioContext, { once: true });
+                console.log('Immediate audio failed:', e.message, 'waiting for user interaction');
+                setupUserInteractionListeners();
             }
+        }
+
+        function setupUserInteractionListeners() {
+            function enableAudioOnInteraction() {
+                ensureAudioContext();
+                document.removeEventListener('click', enableAudioOnInteraction);
+                document.removeEventListener('keydown', enableAudioOnInteraction);
+                document.removeEventListener('touchstart', enableAudioOnInteraction);
+            }
+
+            document.addEventListener('click', enableAudioOnInteraction);
+            document.addEventListener('keydown', enableAudioOnInteraction);
+            document.addEventListener('touchstart', enableAudioOnInteraction);
         }
 
         // API Functions
