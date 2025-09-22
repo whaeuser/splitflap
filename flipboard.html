@@ -346,45 +346,105 @@
 
         function playActualSound() {
             try {
-                // Create multiple oscillators for a more complex sound
-                const oscillator1 = audioContext.createOscillator();
-                const oscillator2 = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                const filter = audioContext.createBiquadFilter();
-
-                // Mix oscillators
-                oscillator1.connect(filter);
-                oscillator2.connect(filter);
-                filter.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-
-                // Configure filter for more realistic sound
-                filter.type = 'bandpass';
-                filter.frequency.setValueAtTime(1200, audioContext.currentTime);
-                filter.Q.setValueAtTime(5, audioContext.currentTime);
-
-                // Primary click frequency
-                oscillator1.type = 'square';
-                oscillator1.frequency.setValueAtTime(1000, audioContext.currentTime);
-                oscillator1.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.05);
-
-                // Secondary harmonic
-                oscillator2.type = 'sawtooth';
-                oscillator2.frequency.setValueAtTime(2000, audioContext.currentTime);
-                oscillator2.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.03);
-
-                // Sharp attack, quick decay
-                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-                gainNode.gain.linearRampToValueAtTime(0.15, audioContext.currentTime + 0.01);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.08);
-
                 const now = audioContext.currentTime;
-                oscillator1.start(now);
-                oscillator1.stop(now + 0.08);
-                oscillator2.start(now);
-                oscillator2.stop(now + 0.05);
 
-                console.log('Sound played successfully');
+                // Create realistic mechanical click with multiple components
+
+                // 1. Initial impact (sharp click)
+                const impact = audioContext.createOscillator();
+                const impactGain = audioContext.createGain();
+                const impactFilter = audioContext.createBiquadFilter();
+
+                impact.connect(impactFilter);
+                impactFilter.connect(impactGain);
+                impactGain.connect(audioContext.destination);
+
+                impact.type = 'square';
+                impact.frequency.setValueAtTime(800, now);
+                impact.frequency.exponentialRampToValueAtTime(120, now + 0.015);
+
+                impactFilter.type = 'highpass';
+                impactFilter.frequency.setValueAtTime(400, now);
+
+                impactGain.gain.setValueAtTime(0, now);
+                impactGain.gain.linearRampToValueAtTime(0.12, now + 0.002);
+                impactGain.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
+
+                impact.start(now);
+                impact.stop(now + 0.025);
+
+                // 2. Mechanical resonance (metallic ring)
+                const resonance = audioContext.createOscillator();
+                const resonanceGain = audioContext.createGain();
+                const resonanceFilter = audioContext.createBiquadFilter();
+
+                resonance.connect(resonanceFilter);
+                resonanceFilter.connect(resonanceGain);
+                resonanceGain.connect(audioContext.destination);
+
+                resonance.type = 'triangle';
+                resonance.frequency.setValueAtTime(1800, now + 0.005);
+                resonance.frequency.exponentialRampToValueAtTime(900, now + 0.04);
+
+                resonanceFilter.type = 'bandpass';
+                resonanceFilter.frequency.setValueAtTime(1500, now);
+                resonanceFilter.Q.setValueAtTime(8, now);
+
+                resonanceGain.gain.setValueAtTime(0, now + 0.005);
+                resonanceGain.gain.linearRampToValueAtTime(0.06, now + 0.01);
+                resonanceGain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
+                resonance.start(now + 0.005);
+                resonance.stop(now + 0.06);
+
+                // 3. Damping noise (plastic/metal contact)
+                const noise = audioContext.createOscillator();
+                const noiseGain = audioContext.createGain();
+                const noiseFilter = audioContext.createBiquadFilter();
+
+                noise.connect(noiseFilter);
+                noiseFilter.connect(noiseGain);
+                noiseGain.connect(audioContext.destination);
+
+                noise.type = 'sawtooth';
+                noise.frequency.setValueAtTime(350, now + 0.01);
+                noise.frequency.exponentialRampToValueAtTime(80, now + 0.05);
+
+                noiseFilter.type = 'lowpass';
+                noiseFilter.frequency.setValueAtTime(600, now);
+                noiseFilter.Q.setValueAtTime(1, now);
+
+                noiseGain.gain.setValueAtTime(0, now + 0.01);
+                noiseGain.gain.linearRampToValueAtTime(0.04, now + 0.015);
+                noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+                noise.start(now + 0.01);
+                noise.stop(now + 0.08);
+
+                // 4. Subtle motor/mechanism sound
+                const motor = audioContext.createOscillator();
+                const motorGain = audioContext.createGain();
+                const motorFilter = audioContext.createBiquadFilter();
+
+                motor.connect(motorFilter);
+                motorFilter.connect(motorGain);
+                motorGain.connect(audioContext.destination);
+
+                motor.type = 'sawtooth';
+                motor.frequency.setValueAtTime(60, now);
+                motor.frequency.linearRampToValueAtTime(40, now + 0.1);
+
+                motorFilter.type = 'highpass';
+                motorFilter.frequency.setValueAtTime(30, now);
+
+                motorGain.gain.setValueAtTime(0, now);
+                motorGain.gain.linearRampToValueAtTime(0.02, now + 0.02);
+                motorGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+                motor.start(now);
+                motor.stop(now + 0.12);
+
+                console.log('Authentic mechanical sound played');
 
             } catch (e) {
                 console.log('Sound generation failed:', e);
