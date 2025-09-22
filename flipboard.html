@@ -724,8 +724,15 @@
         function tryEnableAudioImmediately() {
             if (!soundEnabled) return;
 
+            // iOS Safari requires user interaction, set up listeners immediately
+            if (navigator.userAgent.includes('Safari') && navigator.userAgent.includes('Mobile')) {
+                console.log('iOS Safari detected, setting up touch listeners');
+                setupUserInteractionListeners();
+                return;
+            }
+
             try {
-                // Try to create audio context immediately
+                // Try to create audio context immediately for desktop
                 if (!audioContext) {
                     audioContext = new (window.AudioContext || window.webkitAudioContext)();
                     console.log('Audio context created immediately');
@@ -747,16 +754,50 @@
         }
 
         function setupUserInteractionListeners() {
-            function enableAudioOnInteraction() {
-                ensureAudioContext();
+            function enableAudioOnInteraction(event) {
+                console.log('User interaction detected:', event.type);
+
+                if (!audioContext) {
+                    try {
+                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        console.log('Audio context created on user interaction');
+                    } catch (e) {
+                        console.log('Failed to create audio context:', e);
+                        return;
+                    }
+                }
+
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume().then(() => {
+                        console.log('Audio context resumed on user interaction');
+                        // Test sound to confirm it works
+                        setTimeout(() => {
+                            if (soundEnabled) {
+                                console.log('Playing test sound');
+                                playActualSound();
+                            }
+                        }, 100);
+                    }).catch((e) => {
+                        console.log('Failed to resume audio context:', e);
+                    });
+                }
+
+                // Remove listeners after successful activation
                 document.removeEventListener('click', enableAudioOnInteraction);
                 document.removeEventListener('keydown', enableAudioOnInteraction);
                 document.removeEventListener('touchstart', enableAudioOnInteraction);
+                document.removeEventListener('touchend', enableAudioOnInteraction);
+
+                console.log('Audio interaction listeners removed');
             }
 
-            document.addEventListener('click', enableAudioOnInteraction);
-            document.addEventListener('keydown', enableAudioOnInteraction);
-            document.addEventListener('touchstart', enableAudioOnInteraction);
+            // Add comprehensive interaction listeners for iOS
+            document.addEventListener('click', enableAudioOnInteraction, { passive: true });
+            document.addEventListener('keydown', enableAudioOnInteraction, { passive: true });
+            document.addEventListener('touchstart', enableAudioOnInteraction, { passive: true });
+            document.addEventListener('touchend', enableAudioOnInteraction, { passive: true });
+
+            console.log('Audio interaction listeners added');
         }
 
         // API Functions
@@ -921,6 +962,44 @@
             }
         });
 
+        // Add iOS-specific audio unlock button
+        function createAudioUnlockButton() {
+            if (navigator.userAgent.includes('Safari') && navigator.userAgent.includes('Mobile')) {
+                const button = document.createElement('div');
+                button.id = 'ios-audio-unlock';
+                button.innerHTML = '🔊 Touch to Enable Sound';
+                button.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: linear-gradient(135deg, #ffd700, #ffed4e);
+                    color: #000;
+                    padding: 10px 20px;
+                    border-radius: 25px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    z-index: 1000;
+                    font-size: 16px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                `;
+
+                button.addEventListener('touchstart', function() {
+                    ensureAudioContext();
+                    button.style.display = 'none';
+                });
+
+                document.body.appendChild(button);
+
+                // Hide button after 10 seconds
+                setTimeout(() => {
+                    if (button.parentNode) {
+                        button.style.display = 'none';
+                    }
+                }, 10000);
+            }
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             initializeDisplay();
@@ -931,6 +1010,9 @@
 
             // Try to enable audio immediately
             tryEnableAudioImmediately();
+
+            // Create iOS audio unlock button if needed
+            createAudioUnlockButton();
 
             // Default welcome sequence if no URL params
             if (!window.location.search) {
