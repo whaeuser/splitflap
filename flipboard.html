@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentic Split-Flap Display</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000000;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .flip-board {
+            background: transparent;
+            padding: 0;
+            border: none;
+            box-shadow: none;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .display-line {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1vh;
+            gap: 0.3vw;
+        }
+
+        .flip-char {
+            width: 5.5vw;
+            height: 8.25vw;
+            position: relative;
+            background: #1a1a1a;
+            border: 0.15vw solid #333;
+            border-radius: 0.6vw;
+            overflow: hidden;
+            margin: 0.15vw;
+            perspective: 45vw;
+        }
+
+        .flip-half {
+            position: absolute;
+            width: 100%;
+            height: 50%;
+            background: linear-gradient(to bottom, #2a2a2a 0%, #1a1a1a 100%);
+            overflow: hidden;
+            transform-style: preserve-3d;
+        }
+
+        .flip-char-content {
+            position: absolute;
+            width: 100%;
+            height: 8.25vw;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3.6vw;
+            font-weight: bold;
+            color: #fff;
+            text-align: center;
+            line-height: 8.25vw;
+            overflow: hidden;
+        }
+
+        .flip-top {
+            top: 0;
+            transform-origin: bottom;
+        }
+
+        .flip-top .flip-char-content {
+            top: 0;
+            clip-path: inset(0 0 50% 0); /* Show only top half */
+        }
+
+        .flip-bottom {
+            bottom: 0;
+            background: linear-gradient(to bottom, #1a1a1a 0%, #0a0a0a 100%);
+            transform-origin: top;
+        }
+
+        .flip-bottom .flip-char-content {
+            top: -4.125vw; /* Offset to show bottom half */
+            clip-path: inset(50% 0 0 0); /* Show only bottom half */
+        }
+
+        .flip-top.flipping {
+            animation: flipTop 0.3s ease-in forwards;
+        }
+
+        .flip-bottom.reveal {
+            animation: flipBottom 0.3s ease-out 0.3s forwards;
+            transform: rotateX(90deg);
+        }
+
+        @keyframes flipTop {
+            0% { transform: rotateX(0deg); }
+            100% { transform: rotateX(-90deg); }
+        }
+
+        @keyframes flipBottom {
+            0% { transform: rotateX(90deg); }
+            100% { transform: rotateX(0deg); }
+        }
+
+        /* Middle line separator */
+        .flip-char::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0.3vw;
+            right: 0.3vw;
+            height: 0.15vw;
+            background: #333;
+            z-index: 10;
+            transform: translateY(-0.075vw);
+        }
+
+        /* Glossy effect */
+        .flip-char::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                to right,
+                rgba(255,255,255,0.1) 0%,
+                transparent 20%,
+                transparent 80%,
+                rgba(0,0,0,0.2) 100%
+            );
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        input {
+            padding: 10px 15px;
+            border: 2px solid #444;
+            border-radius: 5px;
+            background: #2a2a3e;
+            color: white;
+            font-size: 16px;
+            min-width: 200px;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #ffd700;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+
+        button {
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            color: #000;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: linear-gradient(135deg, #ffed4e, #ffd700);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.4);
+        }
+
+        .preset-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .preset-btn {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .preset-btn:hover {
+            background: linear-gradient(135deg, #45a049, #4CAF50);
+        }
+
+        .sound-toggle {
+            background: linear-gradient(135deg, #9C27B0, #7B1FA2);
+            color: white;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .sound-toggle:hover {
+            background: linear-gradient(135deg, #7B1FA2, #9C27B0);
+        }
+
+        .sound-toggle.muted {
+            background: linear-gradient(135deg, #666, #555);
+        }
+
+        @media (max-width: 768px) {
+            .flip-char {
+                width: 8vw;
+                height: 12vw;
+            }
+
+            .flip-char-content {
+                height: 12vw;
+                font-size: 5vw;
+                line-height: 12vw;
+            }
+
+            .flip-bottom .flip-char-content {
+                top: -6vw;
+            }
+
+            /* Middle line separator for mobile */
+            .flip-char::before {
+                left: 0.4vw;
+                right: 0.4vw;
+                height: 0.2vw;
+                transform: translateY(-0.1vw);
+            }
+        }
+
+        .clicking {
+            position: relative;
+        }
+
+        .clicking::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: rgba(255, 215, 0, 0.2);
+            border-radius: 6px;
+            animation: clickHighlight 0.6s ease-out;
+            z-index: -1;
+        }
+
+        @keyframes clickHighlight {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(1.1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="flip-board">
+        <div class="display-line" id="line1"></div>
+        <div class="display-line" id="line2"></div>
+        <div class="display-line" id="line3"></div>
+        <div class="display-line" id="line4"></div>
+        <div class="display-line" id="line5"></div>
+        <div class="display-line" id="line6"></div>
+    </div>
+
+    <!-- Hidden controls for API access -->
+    <div class="controls" style="display: none;">
+        <input type="text" id="textInput" placeholder="Text eingeben..." maxlength="16">
+        <button class="sound-toggle" id="soundToggle" onclick="toggleSound()">🔊 Sound</button>
+    </div>
+
+    <script>
+        const CHARACTERS = ' ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:-./';
+        let currentTexts = ['', '', '', '', '', ''];
+        let isAnimating = false;
+        let soundEnabled = true;
+        let audioContext = null;
+
+        // Initialize audio context
+        function initAudio() {
+            if (!audioContext) {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) {
+                    console.log('Audio not supported');
+                    soundEnabled = false;
+                }
+            }
+        }
+
+        // Generate realistic mechanical click sound
+        function playClickSound() {
+            if (!soundEnabled || !audioContext) return;
+            
+            try {
+                // Create multiple oscillators for a more complex sound
+                const oscillator1 = audioContext.createOscillator();
+                const oscillator2 = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                const filter = audioContext.createBiquadFilter();
+                
+                // Mix oscillators
+                oscillator1.connect(filter);
+                oscillator2.connect(filter);
+                filter.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                // Configure filter for more realistic sound
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(1200, audioContext.currentTime);
+                filter.Q.setValueAtTime(5, audioContext.currentTime);
+                
+                // Primary click frequency
+                oscillator1.type = 'square';
+                oscillator1.frequency.setValueAtTime(1000, audioContext.currentTime);
+                oscillator1.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.05);
+                
+                // Secondary harmonic
+                oscillator2.type = 'sawtooth';
+                oscillator2.frequency.setValueAtTime(2000, audioContext.currentTime);
+                oscillator2.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.03);
+                
+                // Sharp attack, quick decay
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.15, audioContext.currentTime + 0.01);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.08);
+                
+                const now = audioContext.currentTime;
+                oscillator1.start(now);
+                oscillator1.stop(now + 0.08);
+                oscillator2.start(now);
+                oscillator2.stop(now + 0.05);
+                
+            } catch (e) {
+                console.log('Sound generation failed:', e);
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const button = document.getElementById('soundToggle');
+            
+            if (soundEnabled) {
+                initAudio();
+                button.textContent = '🔊 Sound';
+                button.classList.remove('muted');
+            } else {
+                button.textContent = '🔇 Stumm';
+                button.classList.add('muted');
+            }
+        }
+
+        function createFlipChar(initialChar = ' ') {
+            const char = document.createElement('div');
+            char.className = 'flip-char';
+            
+            const topHalf = document.createElement('div');
+            topHalf.className = 'flip-half flip-top';
+            
+            const topContent = document.createElement('div');
+            topContent.className = 'flip-char-content';
+            topContent.textContent = initialChar;
+            topHalf.appendChild(topContent);
+            
+            const bottomHalf = document.createElement('div');
+            bottomHalf.className = 'flip-half flip-bottom';
+            
+            const bottomContent = document.createElement('div');
+            bottomContent.className = 'flip-char-content';
+            bottomContent.textContent = initialChar;
+            bottomHalf.appendChild(bottomContent);
+            
+            char.appendChild(topHalf);
+            char.appendChild(bottomHalf);
+            
+            return char;
+        }
+
+        function initializeDisplay() {
+            for (let lineNum = 1; lineNum <= 6; lineNum++) {
+                const line = document.getElementById(`line${lineNum}`);
+                line.innerHTML = '';
+
+                for (let i = 0; i < 16; i++) {
+                    line.appendChild(createFlipChar(' '));
+                }
+            }
+            currentTexts = ['', '', '', '', '', ''];
+        }
+
+        function flipCharacter(charElement, newChar, delay = 0) {
+            setTimeout(() => {
+                const topHalf = charElement.querySelector('.flip-top');
+                const bottomHalf = charElement.querySelector('.flip-bottom');
+                const topContent = topHalf.querySelector('.flip-char-content');
+                const bottomContent = bottomHalf.querySelector('.flip-char-content');
+                
+                // Add visual effect
+                charElement.classList.add('clicking');
+                setTimeout(() => charElement.classList.remove('clicking'), 600);
+                
+                // Play click sound
+                playClickSound();
+                
+                // Update the bottom content to new character (will be revealed)
+                bottomContent.textContent = newChar;
+                
+                // Start flip animation
+                topHalf.classList.add('flipping');
+                bottomHalf.classList.add('reveal');
+                
+                // After animation completes, update top half and reset classes
+                setTimeout(() => {
+                    topContent.textContent = newChar;
+                    topHalf.classList.remove('flipping');
+                    bottomHalf.classList.remove('reveal');
+                }, 600);
+                
+            }, delay);
+        }
+
+        function updateLine(lineIndex, newText, startDelay = 0) {
+            const line = document.getElementById(`line${lineIndex + 1}`);
+            const chars = line.querySelectorAll('.flip-char');
+            
+            newText = newText.toUpperCase().padEnd(16, ' ').substring(0, 16);
+            const oldText = currentTexts[lineIndex].padEnd(16, ' ').substring(0, 16);
+            
+            // Only flip characters that actually changed
+            chars.forEach((char, index) => {
+                if (newText[index] !== oldText[index]) {
+                    flipCharacter(char, newText[index], startDelay + index * 80);
+                }
+            });
+            
+            currentTexts[lineIndex] = newText.trimEnd();
+        }
+
+        function updateDisplay() {
+            if (isAnimating) return;
+            
+            const input = document.getElementById('textInput');
+            const text = input.value.trim();
+            
+            if (text) {
+                isAnimating = true;
+                updateLine(1, text);
+                
+                setTimeout(() => {
+                    isAnimating = false;
+                }, 2500);
+            }
+        }
+
+        function clearDisplay() {
+            if (isAnimating) return;
+
+            isAnimating = true;
+            updateLine(0, '');
+            updateLine(1, '');
+            updateLine(2, '');
+            updateLine(3, '');
+            updateLine(4, '');
+            updateLine(5, '');
+
+            setTimeout(() => {
+                isAnimating = false;
+            }, 2500);
+        }
+
+        function setPreset(text) {
+            document.getElementById('textInput').value = text;
+            updateDisplay();
+        }
+
+        function startDemo() {
+            if (isAnimating) return;
+
+            isAnimating = true;
+            const demoSequence = [
+                ['FLUGHAFEN', 'MUENCHEN', 'TERMINAL 2', 'ABFLUG', 'GATE A15', '12:30'],
+                ['LH 441', 'NACH FRANKFURT', 'BOARDING NOW', 'GATE B7', 'PÜNKTLICH', ''],
+                ['AIR FRANCE', 'NACH PARIS', 'VERSPAETUNG', '+25 MINUTEN', 'GATE C3', '14:45'],
+                ['LUFTHANSA', 'NACH BERLIN', 'LETZTER AUFRUF', 'GATE A2', 'SOFORT', ''],
+                ['GUTEN FLUG', 'AUF WIEDERSEHEN', 'DANKE', 'SCHÖNEN TAG', '', '']
+            ];
+
+            let step = 0;
+
+            function nextDemoStep() {
+                if (step < demoSequence.length) {
+                    const [line1, line2, line3, line4, line5, line6] = demoSequence[step];
+
+                    updateLine(0, line1, 0);
+                    updateLine(1, line2, 200);
+                    updateLine(2, line3, 400);
+                    updateLine(3, line4, 600);
+                    updateLine(4, line5, 800);
+                    updateLine(5, line6, 1000);
+
+                    step++;
+                    setTimeout(nextDemoStep, 5000);
+                } else {
+                    setTimeout(() => {
+                        isAnimating = false;
+                    }, 2000);
+                }
+            }
+
+            nextDemoStep();
+        }
+
+        // Event Listeners
+        document.getElementById('textInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                updateDisplay();
+            }
+        });
+
+        // Enable audio on first user interaction or API call
+        function ensureAudioContext() {
+            if (soundEnabled && !audioContext) {
+                initAudio();
+            }
+        }
+
+        document.addEventListener('click', ensureAudioContext, { once: true });
+        document.addEventListener('keydown', ensureAudioContext, { once: true });
+
+        // API Functions
+        window.splitflapAPI = {
+            // Set text on a specific line (0-5)
+            setLine: function(lineIndex, text) {
+                if (lineIndex >= 0 && lineIndex <= 5 && !isAnimating) {
+                    updateLine(lineIndex, text);
+                }
+            },
+
+            // Set all lines at once
+            setDisplay: function(line1 = '', line2 = '', line3 = '', line4 = '', line5 = '', line6 = '') {
+                if (!isAnimating) {
+                    ensureAudioContext(); // Ensure audio works for API calls
+                    isAnimating = true;
+                    updateLine(0, line1, 0);
+                    updateLine(1, line2, 200);
+                    updateLine(2, line3, 400);
+                    updateLine(3, line4, 600);
+                    updateLine(4, line5, 800);
+                    updateLine(5, line6, 1000);
+                    setTimeout(() => { isAnimating = false; }, 3500);
+                }
+            },
+
+            // Clear all lines
+            clear: function() {
+                ensureAudioContext(); // Ensure audio works for API calls
+                clearDisplay();
+            },
+
+            // Start demo sequence
+            demo: function() {
+                ensureAudioContext(); // Ensure audio works for API calls
+                startDemo();
+            },
+
+            // Toggle sound
+            toggleSound: function() {
+                toggleSound();
+            },
+
+            // Get current display state
+            getCurrentDisplay: function() {
+                return [...currentTexts];
+            },
+
+            // Check if animation is running
+            isAnimating: function() {
+                return isAnimating;
+            }
+        };
+
+        // HTTP API via URL parameters
+        function handleURLParams() {
+            const params = new URLSearchParams(window.location.search);
+
+            if (params.has('line1') || params.has('line2') || params.has('line3') ||
+                params.has('line4') || params.has('line5') || params.has('line6')) {
+                const line1 = params.get('line1') || '';
+                const line2 = params.get('line2') || '';
+                const line3 = params.get('line3') || '';
+                const line4 = params.get('line4') || '';
+                const line5 = params.get('line5') || '';
+                const line6 = params.get('line6') || '';
+
+                setTimeout(() => {
+                    window.splitflapAPI.setDisplay(line1, line2, line3, line4, line5, line6);
+                }, 1000);
+            } else if (params.has('demo')) {
+                setTimeout(() => {
+                    window.splitflapAPI.demo();
+                }, 1000);
+            } else if (params.has('clear')) {
+                setTimeout(() => {
+                    window.splitflapAPI.clear();
+                }, 1000);
+            }
+        }
+
+        // HTTP API server communication via polling
+        function connectToServer() {
+            function pollCommands() {
+                fetch('/api/commands')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.action === 'setDisplay') {
+                            console.log('Received setDisplay command:', data);
+                            window.splitflapAPI.setDisplay(
+                                data.line1, data.line2, data.line3,
+                                data.line4, data.line5, data.line6
+                            );
+                        } else if (data.action === 'clear') {
+                            console.log('Received clear command');
+                            window.splitflapAPI.clear();
+                        } else if (data.action === 'demo') {
+                            console.log('Received demo command');
+                            window.splitflapAPI.demo();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error polling commands:', error);
+                    });
+
+                // Poll every 500ms
+                setTimeout(pollCommands, 500);
+            }
+
+            // Start polling
+            pollCommands();
+        }
+
+        // PostMessage API for iframe communication
+        window.addEventListener('message', function(event) {
+            const { action, data } = event.data;
+
+            switch (action) {
+                case 'setDisplay':
+                    window.splitflapAPI.setDisplay(
+                        data.line1, data.line2, data.line3,
+                        data.line4, data.line5, data.line6
+                    );
+                    break;
+                case 'setLine':
+                    window.splitflapAPI.setLine(data.lineIndex, data.text);
+                    break;
+                case 'clear':
+                    window.splitflapAPI.clear();
+                    break;
+                case 'demo':
+                    window.splitflapAPI.demo();
+                    break;
+                case 'toggleSound':
+                    window.splitflapAPI.toggleSound();
+                    break;
+                case 'getState':
+                    event.source.postMessage({
+                        type: 'splitflapState',
+                        display: window.splitflapAPI.getCurrentDisplay(),
+                        isAnimating: window.splitflapAPI.isAnimating()
+                    }, event.origin);
+                    break;
+            }
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDisplay();
+            handleURLParams();
+
+            // Connect to server for API commands
+            connectToServer();
+
+            // Try to initialize audio immediately for better API support
+            setTimeout(() => {
+                ensureAudioContext();
+            }, 500);
+
+            // Default welcome sequence if no URL params
+            if (!window.location.search) {
+                setTimeout(() => {
+                    updateLine(1, 'SPLIT FLAP', 0);
+                    setTimeout(() => {
+                        updateLine(1, 'BEREIT', 0);
+                    }, 2000);
+                }, 800);
+            }
+        });
+    </script>
+</body>
+</html>
