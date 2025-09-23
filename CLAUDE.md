@@ -16,7 +16,7 @@ This is a split-flap display simulator implemented as a single HTML file (`flipb
 ### Core Components
 
 **Display System** (`flipboard.html:430-488`):
-- 3 display lines, each with 16 character positions
+- 6 display lines, each with 16 character positions
 - Character set: `' ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:-./`
 - Flip animation system with top/bottom halves for realistic mechanical movement
 
@@ -59,7 +59,7 @@ python3 -m http.server 8001
 
 ### Display Constraints
 - 16 characters per line maximum
-- 3 display lines total
+- 6 display lines total
 - Automatic uppercase conversion and padding
 - Only supports defined character set (see CHARACTERS constant)
 
@@ -70,7 +70,7 @@ The display is designed for API control with hidden manual controls. Multiple AP
 ### HTTP API Server
 Start the web server:
 ```bash
-python3 server.py 8001
+python3 simple_server.py 8001
 # or
 ./start_server.sh
 ```
@@ -86,14 +86,24 @@ Content-Type: application/json
 {
   "line1": "HELLO",
   "line2": "WORLD",
-  "line3": ""
+  "line3": "",
+  "line4": "",
+  "line5": "",
+  "line6": ""
 }
 
 # Alternative format with array
 POST /api/display
 Content-Type: application/json
 {
-  "lines": ["HELLO", "WORLD", ""]
+  "lines": ["HELLO", "WORLD", "", "", "", ""]
+}
+
+# Enable/disable datetime mode
+POST /api/datetime
+Content-Type: application/json
+{
+  "enable": true
 }
 
 # Clear display
@@ -108,7 +118,12 @@ POST /api/demo
 # Set display via curl
 curl -X POST http://localhost:8001/api/display \
   -H "Content-Type: application/json" \
-  -d '{"line1":"ABFLUG 12:30","line2":"GATE A15","line3":"PÜNKTLICH"}'
+  -d '{"line1":"FLUGHAFEN MÜNCHEN","line2":"TERMINAL 2","line3":"ABFLÜGE","line4":"LH 441 FRANKFURT","line5":"GATE A15","line6":"12:30 PÜNKTLICH"}'
+
+# Enable datetime mode
+curl -X POST http://localhost:8001/api/datetime \
+  -H "Content-Type: application/json" \
+  -d '{"enable": true}'
 
 # Clear display
 curl -X POST http://localhost:8001/api/clear
@@ -119,10 +134,10 @@ curl -X POST http://localhost:8001/api/demo
 
 ### JavaScript API (window.splitflapAPI)
 ```javascript
-// Set all three lines at once
-window.splitflapAPI.setDisplay('LINE 1', 'LINE 2', 'LINE 3');
+// Set all six lines at once
+window.splitflapAPI.setDisplay('LINE 1', 'LINE 2', 'LINE 3', 'LINE 4', 'LINE 5', 'LINE 6');
 
-// Set individual line (0-2)
+// Set individual line (0-5)
 window.splitflapAPI.setLine(1, 'HELLO WORLD');
 
 // Clear all lines
@@ -130,6 +145,9 @@ window.splitflapAPI.clear();
 
 // Start demo sequence
 window.splitflapAPI.demo();
+
+// Enable/disable datetime mode
+window.splitflapAPI.datetime(true);
 
 // Get current state
 window.splitflapAPI.getCurrentDisplay(); // Returns array of current text
@@ -139,7 +157,10 @@ window.splitflapAPI.isAnimating(); // Returns boolean
 ### URL Parameters
 ```
 # Set display content
-http://localhost:8001/?line1=HELLO&line2=WORLD&line3=
+http://localhost:8001/?line1=HELLO&line2=WORLD&line3=&line4=&line5=&line6=
+
+# Enable datetime mode
+http://localhost:8001/?datetime
 
 # Start demo
 http://localhost:8001/?demo
@@ -153,7 +174,13 @@ http://localhost:8001/?clear
 // Send commands to iframe
 iframe.contentWindow.postMessage({
     action: 'setDisplay',
-    data: { line1: 'HELLO', line2: 'WORLD', line3: '' }
+    data: { line1: 'HELLO', line2: 'WORLD', line3: '', line4: '', line5: '', line6: '' }
+}, '*');
+
+// Enable datetime mode
+iframe.contentWindow.postMessage({
+    action: 'datetime',
+    data: { enable: true }
 }, '*');
 
 // Get current state
