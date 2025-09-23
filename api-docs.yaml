@@ -16,10 +16,10 @@ info:
     url: https://github.com/whaeuser/splitflap
 
 servers:
-  - url: http://localhost:8000
-    description: Local development server
   - url: http://localhost:8001
-    description: Alternative local server
+    description: Local development server
+  - url: http://localhost:8000
+    description: Alternative local server (legacy)
 
 paths:
   /api/status:

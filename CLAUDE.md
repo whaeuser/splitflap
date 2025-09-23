@@ -43,7 +43,7 @@ This is a split-flap display simulator implemented as a single HTML file (`flipb
 # Open directly in browser
 open flipboard.html
 # Or serve locally for testing
-python3 -m http.server 8000
+python3 -m http.server 8001
 ```
 
 ### Key Functions to Understand
@@ -70,7 +70,7 @@ The display is designed for API control with hidden manual controls. Multiple AP
 ### HTTP API Server
 Start the web server:
 ```bash
-python3 server.py 8000
+python3 server.py 8001
 # or
 ./start_server.sh
 ```
@@ -106,15 +106,15 @@ POST /api/demo
 **Examples:**
 ```bash
 # Set display via curl
-curl -X POST http://localhost:8000/api/display \
+curl -X POST http://localhost:8001/api/display \
   -H "Content-Type: application/json" \
   -d '{"line1":"ABFLUG 12:30","line2":"GATE A15","line3":"PÜNKTLICH"}'
 
 # Clear display
-curl -X POST http://localhost:8000/api/clear
+curl -X POST http://localhost:8001/api/clear
 
 # Start demo
-curl -X POST http://localhost:8000/api/demo
+curl -X POST http://localhost:8001/api/demo
 ```
 
 ### JavaScript API (window.splitflapAPI)
@@ -139,13 +139,13 @@ window.splitflapAPI.isAnimating(); // Returns boolean
 ### URL Parameters
 ```
 # Set display content
-http://localhost:8000/?line1=HELLO&line2=WORLD&line3=
+http://localhost:8001/?line1=HELLO&line2=WORLD&line3=
 
 # Start demo
-http://localhost:8000/?demo
+http://localhost:8001/?demo
 
 # Clear display
-http://localhost:8000/?clear
+http://localhost:8001/?clear
 ```
 
 ### PostMessage API (for iframe embedding)

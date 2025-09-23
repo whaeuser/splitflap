@@ -25,7 +25,7 @@ cd splitflap
 
 ### 2. Start the Server
 ```bash
-# Using the start script (default port 8000)
+# Using the start script (default port 8001)
 ./start_server.sh
 
 # Or directly with Python (custom port)
@@ -33,11 +33,13 @@ python3 simple_server.py 8001
 ```
 
 ### 3. Open in Browser
-Navigate to `http://localhost:8001/` to see your split-flap display!
+- **Display:** `http://localhost:8001/` - Main split-flap display
+- **API Docs:** `http://localhost:8001/docs` - Interactive Swagger UI documentation
 
 ## 📡 API Documentation
 
-**📋 Complete API Specification:** See [`api-docs.yaml`](./api-docs.yaml) for full OpenAPI/Swagger documentation.
+**📋 Interactive API Documentation:** Visit `http://localhost:8001/docs` for Swagger UI
+**📄 OpenAPI Specification:** See [`api-docs.yaml`](./api-docs.yaml) for full API specification
 
 ### REST API Endpoints
 
@@ -299,6 +301,7 @@ splitflap/
 ├── README.md              # This file
 ├── CLAUDE.md             # Development documentation
 ├── api-docs.yaml         # OpenAPI/Swagger API specification
+├── swagger-ui.html       # Interactive API documentation (Swagger UI)
 ├── flipboard.html        # Main display application
 ├── simple_server.py      # HTTP API server
 └── start_server.sh       # Quick start script

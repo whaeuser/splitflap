@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Split-Flap Display API Documentation</title>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui.css" />
+    <style>
+        html {
+            box-sizing: border-box;
+            overflow: -moz-scrollbars-vertical;
+            overflow-y: scroll;
+        }
+        *, *:before, *:after {
+            box-sizing: inherit;
+        }
+        body {
+            margin: 0;
+            background: #fafafa;
+        }
+        .swagger-ui .topbar {
+            background-color: #1f1f1f;
+        }
+        .swagger-ui .topbar .download-url-wrapper .select-label {
+            color: #fff;
+        }
+        .swagger-ui .info .title {
+            color: #3b4151;
+        }
+        .custom-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .custom-header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        .custom-header p {
+            margin: 10px 0 0 0;
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        .link-section {
+            background: #fff;
+            padding: 20px;
+            margin: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .link-section h3 {
+            margin-top: 0;
+            color: #3b4151;
+        }
+        .link-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: background 0.3s;
+        }
+        .link-button:hover {
+            background: #5a67d8;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="custom-header">
+        <h1>🛩️ Split-Flap Display API</h1>
+        <p>Interactive API Documentation & Testing Interface</p>
+    </div>
+
+    <div class="link-section">
+        <h3>🔗 Quick Links</h3>
+        <a href="/" class="link-button">🎯 Live Display</a>
+        <a href="/api/status" class="link-button">📊 API Status</a>
+        <a href="/api-docs.yaml" class="link-button">📄 OpenAPI Spec</a>
+        <a href="https://github.com/whaeuser/splitflap" class="link-button">📚 GitHub Repository</a>
+    </div>
+
+    <div id="swagger-ui"></div>
+
+    <script src="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-standalone-preset.js"></script>
+    <script>
+        window.onload = function() {
+            // Get the current host for the server URL
+            const protocol = window.location.protocol;
+            const host = window.location.host;
+            const baseUrl = `${protocol}//${host}`;
+
+            const ui = SwaggerUIBundle({
+                url: './api-docs.yaml',
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                ],
+                layout: "StandaloneLayout",
+                tryItOutEnabled: true,
+                supportedSubmitMethods: ['get', 'post', 'put', 'delete', 'patch'],
+                validatorUrl: null,
+                onComplete: function() {
+                    // Update server URLs to match current host
+                    const servers = ui.getSystem().specSelectors.servers();
+                    if (servers && servers.size === 0) {
+                        // If no servers defined, add current host
+                        ui.specActions.updateSpec({
+                            ...ui.specActions.spec,
+                            servers: [
+                                { url: baseUrl, description: 'Current Server' }
+                            ]
+                        });
+                    }
+                },
+                requestInterceptor: function(request) {
+                    // Ensure requests go to current host if using relative URLs
+                    if (request.url.startsWith('/')) {
+                        request.url = baseUrl + request.url;
+                    }
+                    return request;
+                }
+            });
+
+            window.ui = ui;
+        };
+    </script>
+</body>
+</html>

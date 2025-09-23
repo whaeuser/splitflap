@@ -21,6 +21,8 @@ class SplitFlapHandler(BaseHTTPRequestHandler):
         """Handle GET requests"""
         if self.path == '/' or self.path == '/index.html':
             self.serve_file('flipboard.html')
+        elif self.path == '/docs' or self.path == '/api-docs':
+            self.serve_file('swagger-ui.html')
         elif self.path == '/api/commands':
             self.handle_command_polling()
         elif self.path.startswith('/api/'):
@@ -167,13 +169,16 @@ class SplitFlapHandler(BaseHTTPRequestHandler):
         """Custom logging"""
         print(f"[{self.date_time_string()}] {format % args}")
 
-def run_server(port=8000):
+def run_server(port=8001):
     """Start the web server"""
     server_address = ('', port)
     httpd = HTTPServer(server_address, SplitFlapHandler)
 
     print(f"Split-Flap Display Server starting on port {port}")
-    print(f"Display: http://localhost:{port}/")
+    print(f"")
+    print(f"🎯 Display: http://localhost:{port}/")
+    print(f"📚 API Docs: http://localhost:{port}/docs")
+    print(f"")
     print(f"API endpoints:")
     print(f"  GET  /api/status")
     print(f"  GET  /api/commands (polling)")
@@ -181,6 +186,10 @@ def run_server(port=8000):
     print(f"  POST /api/clear")
     print(f"  POST /api/demo")
     print(f"  POST /api/datetime")
+    print(f"")
+    print(f"Documentation:")
+    print(f"  GET  /docs (Swagger UI)")
+    print(f"  GET  /api-docs.yaml (OpenAPI spec)")
     print(f"\nPress Ctrl+C to stop the server")
 
     try:
@@ -191,5 +200,5 @@ def run_server(port=8000):
 
 if __name__ == '__main__':
     import sys
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8000
+    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8001
     run_server(port)
