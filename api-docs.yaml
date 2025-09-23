@@ -124,8 +124,6 @@ paths:
         Update the content of the split-flap display. Supports two input formats:
         - Individual line properties (line1, line2, etc.)
         - Array format with 'lines' property
-
-        Setting any content will automatically disable datetime mode if active.
       requestBody:
         required: true
         content:
@@ -269,7 +267,6 @@ paths:
         - Stops automatic time updates
         - Top line becomes available for custom content
 
-        **Note:** DateTime mode is automatically disabled when setting custom display content via `/api/display`.
       requestBody:
         required: false
         content:
