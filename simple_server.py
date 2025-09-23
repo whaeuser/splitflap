@@ -109,6 +109,14 @@ class SplitFlapHandler(BaseHTTPRequestHandler):
                     self.command_queue.append(command)
                 self.send_json_response({'status': 'success', 'message': 'Demo command queued'})
 
+            elif self.path == '/api/datetime':
+                data = json.loads(post_data.decode('utf-8')) if post_data else {}
+                enable = data.get('enable', True)
+                command = {'action': 'datetime', 'enable': enable}
+                with self.command_lock:
+                    self.command_queue.append(command)
+                self.send_json_response({'status': 'success', 'message': f'DateTime {"enabled" if enable else "disabled"}'})
+
             else:
                 self.send_error(404, "API endpoint not found")
 
@@ -172,6 +180,7 @@ def run_server(port=8000):
     print(f"  POST /api/display")
     print(f"  POST /api/clear")
     print(f"  POST /api/demo")
+    print(f"  POST /api/datetime")
     print(f"\nPress Ctrl+C to stop the server")
 
     try:

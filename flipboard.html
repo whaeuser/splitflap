@@ -305,6 +305,8 @@
         let isAnimating = false;
         let soundEnabled = true;
         let audioContext = null;
+        let datetimeMode = false;
+        let datetimeInterval = null;
 
         // Initialize audio context
         function initAudio() {
@@ -800,11 +802,74 @@
             console.log('Audio interaction listeners added');
         }
 
+        // DateTime functions
+        function formatDateTime() {
+            const now = new Date();
+
+            // Format date as DD.MM.YYYY
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+            const dateStr = `${day}.${month}.${year}`;
+
+            // Format time as HH:MM:SS
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const timeStr = `${hours}:${minutes}:${seconds}`;
+
+            // Create top line with date left, time right (16 chars total)
+            const padding = 16 - dateStr.length - timeStr.length;
+            const topLine = dateStr + ' '.repeat(Math.max(1, padding)) + timeStr;
+
+            return topLine.substring(0, 16); // Ensure exactly 16 characters
+        }
+
+        function startDateTimeMode() {
+            if (datetimeInterval) {
+                clearInterval(datetimeInterval);
+            }
+
+            datetimeMode = true;
+            console.log('DateTime mode enabled');
+
+            // Update immediately
+            updateDateTimeDisplay();
+
+            // Update every second
+            datetimeInterval = setInterval(updateDateTimeDisplay, 1000);
+        }
+
+        function stopDateTimeMode() {
+            if (datetimeInterval) {
+                clearInterval(datetimeInterval);
+                datetimeInterval = null;
+            }
+
+            datetimeMode = false;
+            console.log('DateTime mode disabled');
+        }
+
+        function updateDateTimeDisplay() {
+            if (!datetimeMode) return;
+
+            const dateTimeStr = formatDateTime();
+
+            // Only update if different from current content to avoid unnecessary animations
+            if (currentTexts[0] !== dateTimeStr) {
+                updateLine(0, dateTimeStr, 0);
+            }
+        }
+
         // API Functions
         window.splitflapAPI = {
             // Set text on a specific line (0-5)
             setLine: function(lineIndex, text) {
                 if (lineIndex >= 0 && lineIndex <= 5 && !isAnimating) {
+                    // Disable datetime mode if setting line 0
+                    if (lineIndex === 0 && datetimeMode) {
+                        stopDateTimeMode();
+                    }
                     updateLine(lineIndex, text);
                 }
             },
@@ -812,6 +877,11 @@
             // Set all lines at once
             setDisplay: function(line1 = '', line2 = '', line3 = '', line4 = '', line5 = '', line6 = '') {
                 if (!isAnimating) {
+                    // Disable datetime mode when setting custom display
+                    if (datetimeMode) {
+                        stopDateTimeMode();
+                    }
+
                     ensureAudioContext(); // Ensure audio works for API calls
                     isAnimating = true;
                     updateLine(0, line1, 0);
@@ -826,14 +896,29 @@
 
             // Clear all lines
             clear: function() {
+                if (datetimeMode) {
+                    stopDateTimeMode();
+                }
                 ensureAudioContext(); // Ensure audio works for API calls
                 clearDisplay();
             },
 
             // Start demo sequence
             demo: function() {
+                if (datetimeMode) {
+                    stopDateTimeMode();
+                }
                 ensureAudioContext(); // Ensure audio works for API calls
                 startDemo();
+            },
+
+            // Enable/disable datetime mode
+            datetime: function(enable = true) {
+                if (enable) {
+                    startDateTimeMode();
+                } else {
+                    stopDateTimeMode();
+                }
             },
 
             // Toggle sound
@@ -849,6 +934,11 @@
             // Check if animation is running
             isAnimating: function() {
                 return isAnimating;
+            },
+
+            // Check if datetime mode is active
+            isDateTimeMode: function() {
+                return datetimeMode;
             }
         };
 
@@ -915,6 +1005,9 @@
                         } else if (data.action === 'demo') {
                             console.log('Received demo command');
                             window.splitflapAPI.demo();
+                        } else if (data.action === 'datetime') {
+                            console.log('Received datetime command:', data.enable);
+                            window.splitflapAPI.datetime(data.enable);
                         }
                     })
                     .catch(error => {
