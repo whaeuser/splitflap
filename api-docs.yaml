@@ -1,0 +1,351 @@
+openapi: 3.0.3
+info:
+  title: Split-Flap Display API
+  description: |
+    REST API for controlling a 6-line split-flap display with authentic mechanical animations.
+
+    The display supports 6 lines with up to 16 characters each, featuring realistic flip animations,
+    sound effects, and real-time datetime display mode.
+
+    **Character Set:** A-Z (uppercase), 0-9, space, : - . /
+
+    All lowercase input is automatically converted to uppercase.
+  version: 1.0.0
+  contact:
+    name: Split-Flap Display
+    url: https://github.com/whaeuser/splitflap
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: http://localhost:8001
+    description: Alternative local server
+
+paths:
+  /api/status:
+    get:
+      summary: Get server status
+      description: Returns the current status and capabilities of the split-flap display server
+      responses:
+        '200':
+          description: Server status information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ready
+                    description: Current server status
+                  display:
+                    type: string
+                    example: split-flap
+                    description: Display type identifier
+                  lines:
+                    type: integer
+                    example: 6
+                    description: Number of display lines available
+
+  /api/commands:
+    get:
+      summary: Poll for pending commands
+      description: |
+        Polling endpoint used by the frontend to retrieve queued commands.
+        Returns the next command in the queue or 'none' if queue is empty.
+        Commands are consumed when retrieved (FIFO queue).
+      responses:
+        '200':
+          description: Command from queue or empty response
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      action:
+                        type: string
+                        enum: [none]
+                    example:
+                      action: none
+                  - type: object
+                    properties:
+                      action:
+                        type: string
+                        enum: [setDisplay]
+                      line1:
+                        type: string
+                        maxLength: 16
+                      line2:
+                        type: string
+                        maxLength: 16
+                      line3:
+                        type: string
+                        maxLength: 16
+                      line4:
+                        type: string
+                        maxLength: 16
+                      line5:
+                        type: string
+                        maxLength: 16
+                      line6:
+                        type: string
+                        maxLength: 16
+                    example:
+                      action: setDisplay
+                      line1: "DEPARTURE"
+                      line2: "LH 442 BERLIN"
+                      line3: "GATE B12"
+                      line4: "14:30"
+                      line5: "ON TIME"
+                      line6: "BOARDING"
+                  - type: object
+                    properties:
+                      action:
+                        type: string
+                        enum: [clear, demo]
+                    example:
+                      action: clear
+                  - type: object
+                    properties:
+                      action:
+                        type: string
+                        enum: [datetime]
+                      enable:
+                        type: boolean
+                    example:
+                      action: datetime
+                      enable: true
+
+  /api/display:
+    post:
+      summary: Set display content
+      description: |
+        Update the content of the split-flap display. Supports two input formats:
+        - Individual line properties (line1, line2, etc.)
+        - Array format with 'lines' property
+
+        Setting any content will automatically disable datetime mode if active.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  title: Individual Lines Format
+                  properties:
+                    line1:
+                      type: string
+                      maxLength: 16
+                      description: Content for line 1 (top)
+                    line2:
+                      type: string
+                      maxLength: 16
+                      description: Content for line 2
+                    line3:
+                      type: string
+                      maxLength: 16
+                      description: Content for line 3
+                    line4:
+                      type: string
+                      maxLength: 16
+                      description: Content for line 4
+                    line5:
+                      type: string
+                      maxLength: 16
+                      description: Content for line 5
+                    line6:
+                      type: string
+                      maxLength: 16
+                      description: Content for line 6 (bottom)
+                  example:
+                    line1: "FLUGHAFEN MÜNCHEN"
+                    line2: "TERMINAL 2"
+                    line3: "ABFLÜGE"
+                    line4: "LH 441 FRANKFURT"
+                    line5: "GATE A15"
+                    line6: "12:30 PÜNKTLICH"
+                - type: object
+                  title: Array Format
+                  properties:
+                    lines:
+                      type: array
+                      maxItems: 6
+                      items:
+                        type: string
+                        maxLength: 16
+                      description: Array of line contents (max 6 lines)
+                  example:
+                    lines:
+                      - "FLUGHAFEN MÜNCHEN"
+                      - "TERMINAL 2"
+                      - "ABFLÜGE"
+                      - "LH 441 FRANKFURT"
+                      - "GATE A15"
+                      - "12:30 PÜNKTLICH"
+      responses:
+        '200':
+          description: Display update queued successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Command queued
+        '400':
+          description: Invalid display data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Invalid display data
+
+  /api/clear:
+    post:
+      summary: Clear all display lines
+      description: |
+        Clears all content from the display, setting all lines to empty.
+        Automatically disables datetime mode if active.
+      responses:
+        '200':
+          description: Clear command queued successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Clear command queued
+
+  /api/demo:
+    post:
+      summary: Start demo sequence
+      description: |
+        Starts a built-in demonstration sequence showing typical airport/train station announcements.
+        Automatically disables datetime mode if active.
+      responses:
+        '200':
+          description: Demo command queued successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Demo command queued
+
+  /api/datetime:
+    post:
+      summary: Control datetime display mode
+      description: |
+        Enable or disable real-time datetime display mode.
+
+        When enabled:
+        - Displays current date (DD.MM.YYYY) and time (HH:MM:SS) on the top line
+        - Updates automatically every second
+        - Format: "DD.MM.YYYY    HH:MM:SS" (date left, time right)
+
+        When disabled:
+        - Stops automatic time updates
+        - Top line becomes available for custom content
+
+        **Note:** DateTime mode is automatically disabled when setting custom display content via `/api/display`.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enable:
+                  type: boolean
+                  default: true
+                  description: |
+                    Whether to enable (true) or disable (false) datetime mode.
+                    If not specified, defaults to true.
+            examples:
+              enable:
+                summary: Enable datetime mode
+                value:
+                  enable: true
+              disable:
+                summary: Disable datetime mode
+                value:
+                  enable: false
+              default:
+                summary: Enable with default (no body needed)
+                value: {}
+      responses:
+        '200':
+          description: DateTime mode toggled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    examples:
+                      enabled:
+                        summary: When datetime mode is enabled
+                        value: DateTime enabled
+                      disabled:
+                        summary: When datetime mode is disabled
+                        value: DateTime disabled
+        '400':
+          description: Invalid JSON in request body
+        '500':
+          description: Internal server error
+
+components:
+  schemas:
+    SuccessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success]
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [error]
+        message:
+          type: string
+
+tags:
+  - name: Status
+    description: Server status and capabilities
+  - name: Display Control
+    description: Content management and display control
+  - name: Special Modes
+    description: Demo sequences and datetime mode
+  - name: System
+    description: Command polling and system operations

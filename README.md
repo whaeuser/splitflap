@@ -37,6 +37,8 @@ Navigate to `http://localhost:8001/` to see your split-flap display!
 
 ## 📡 API Documentation
 
+**📋 Complete API Specification:** See [`api-docs.yaml`](./api-docs.yaml) for full OpenAPI/Swagger documentation.
+
 ### REST API Endpoints
 
 #### Get Server Status
@@ -94,6 +96,32 @@ POST /api/clear
 POST /api/demo
 ```
 
+#### Control DateTime Display
+```bash
+POST /api/datetime
+Content-Type: application/json
+```
+
+**Enable DateTime Mode:**
+```json
+{
+  "enable": true
+}
+```
+
+**Disable DateTime Mode:**
+```json
+{
+  "enable": false
+}
+```
+
+**Features:**
+- Displays current date (DD.MM.YYYY) and time (HH:MM:SS) on top line
+- Updates automatically every second
+- Format: `DD.MM.YYYY    HH:MM:SS` (date left, time right)
+- Automatically disabled when setting custom content
+
 ### 🔧 API Examples
 
 #### Using cURL
@@ -115,6 +143,16 @@ curl -X POST http://localhost:8001/api/clear
 
 # Start demo sequence
 curl -X POST http://localhost:8001/api/demo
+
+# Enable datetime display
+curl -X POST http://localhost:8001/api/datetime \
+  -H "Content-Type: application/json" \
+  -d '{"enable": true}'
+
+# Disable datetime display
+curl -X POST http://localhost:8001/api/datetime \
+  -H "Content-Type: application/json" \
+  -d '{"enable": false}'
 ```
 
 #### Using JavaScript (Browser)
@@ -135,6 +173,20 @@ fetch('/api/display', {
 
 // Clear display
 fetch('/api/clear', { method: 'POST' });
+
+// Enable datetime mode
+fetch('/api/datetime', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ enable: true })
+});
+
+// Disable datetime mode
+fetch('/api/datetime', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ enable: false })
+});
 ```
 
 #### Using Python
@@ -151,6 +203,18 @@ response = requests.post('http://localhost:8001/api/display', json={
     'line6': 'APOLOGIZE'
 })
 
+print(response.json())
+
+# Enable datetime display
+response = requests.post('http://localhost:8001/api/datetime', json={
+    'enable': True
+})
+print(response.json())
+
+# Disable datetime display
+response = requests.post('http://localhost:8001/api/datetime', json={
+    'enable': False
+})
 print(response.json())
 ```
 
@@ -234,6 +298,7 @@ The display automatically scales to fit different screen sizes:
 splitflap/
 ├── README.md              # This file
 ├── CLAUDE.md             # Development documentation
+├── api-docs.yaml         # OpenAPI/Swagger API specification
 ├── flipboard.html        # Main display application
 ├── simple_server.py      # HTTP API server
 └── start_server.sh       # Quick start script
