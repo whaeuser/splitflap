@@ -866,9 +866,10 @@
             // Set text on a specific line (0-5)
             setLine: function(lineIndex, text) {
                 if (lineIndex >= 0 && lineIndex <= 5 && !isAnimating) {
-                    // Disable datetime mode if setting line 0
+                    // Prevent overwriting line 0 if datetime mode is active
                     if (lineIndex === 0 && datetimeMode) {
-                        stopDateTimeMode();
+                        console.warn('Cannot overwrite line 0 while datetime mode is active');
+                        return;
                     }
                     updateLine(lineIndex, text);
                 }
@@ -877,14 +878,14 @@
             // Set all lines at once
             setDisplay: function(line1 = '', line2 = '', line3 = '', line4 = '', line5 = '', line6 = '') {
                 if (!isAnimating) {
-                    // Disable datetime mode when setting custom display
-                    if (datetimeMode) {
-                        stopDateTimeMode();
-                    }
-
                     ensureAudioContext(); // Ensure audio works for API calls
                     isAnimating = true;
-                    updateLine(0, line1, 0);
+
+                    // Skip line 0 if datetime mode is active, otherwise update it
+                    if (!datetimeMode) {
+                        updateLine(0, line1, 0);
+                    }
+
                     updateLine(1, line2, 200);
                     updateLine(2, line3, 400);
                     updateLine(3, line4, 600);
