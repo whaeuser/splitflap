@@ -1,0 +1,44 @@
+[Unit]
+Description=Split-Flap Display Server
+After=network.target
+# If using MQTT, wait for network to be fully up
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/splitflap
+# Use absolute path to Python from venv
+ExecStart=/home/pi/splitflap/venv/bin/python3 /home/pi/splitflap/server.py 8001
+
+# Environment variables (optional)
+# Uncomment and configure as needed
+#Environment="MQTT_BROKER=localhost"
+#Environment="MQTT_PORT=1883"
+#Environment="MQTT_USERNAME=user"
+#Environment="MQTT_PASSWORD=pass"
+#Environment="MQTT_TOPIC_PREFIX=splitflap"
+#Environment="SPLITFLAP_API_KEY=secret"
+#Environment="RATE_LIMIT_REQUESTS=100"
+#Environment="RATE_LIMIT_WINDOW=60"
+
+# Or load from .env file
+# EnvironmentFile=/home/pi/splitflap/.env
+
+# Restart policy
+Restart=always
+RestartSec=10
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=splitflap
+
+[Install]
+WantedBy=multi-user.target

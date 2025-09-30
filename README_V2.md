@@ -287,6 +287,24 @@ splitflap/
 - **APIs/Webhooks**: Integrate with other services via WebSocket or MQTT
 - **Multi-Display Management**: Control multiple displays from one MQTT broker
 
+## 🚀 Autostart on Boot
+
+Configure the server to start automatically on system boot.
+
+### macOS
+```bash
+cd autostart/macos
+./install.sh
+```
+
+### Raspberry Pi
+```bash
+cd autostart/raspberry-pi
+./install.sh
+```
+
+📖 **Full documentation**: [AUTOSTART.md](AUTOSTART.md)
+
 ## 🔄 Migration from v1.0 to v2.0
 
 ### Backend
