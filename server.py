@@ -386,6 +386,13 @@ async def root():
         return FileResponse("flipboard.html")
     return {"message": "Split-Flap Display Server", "version": "2.0.0"}
 
+@app.get("/admin")
+async def admin():
+    """Serve admin interface"""
+    if os.path.exists("admin.html"):
+        return FileResponse("admin.html")
+    raise HTTPException(status_code=404, detail="Admin interface not found")
+
 @app.get("/flipboard")
 async def flipboard():
     """Serve legacy single-file version"""
