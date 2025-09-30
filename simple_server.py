@@ -20,6 +20,13 @@ class SplitFlapHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         """Handle GET requests"""
         if self.path == '/' or self.path == '/index.html':
+            # Serve modular version if available, fallback to flipboard.html
+            if os.path.exists('index.html'):
+                self.serve_file('index.html')
+            else:
+                self.serve_file('flipboard.html')
+        elif self.path == '/flipboard' or self.path == '/flipboard.html':
+            # Legacy single-file version
             self.serve_file('flipboard.html')
         elif self.path == '/docs' or self.path == '/api-docs':
             self.serve_file('swagger-ui.html')
@@ -50,7 +57,14 @@ class SplitFlapHandler(BaseHTTPRequestHandler):
 
             content_type, _ = mimetypes.guess_type(file_path)
             if content_type is None:
-                content_type = 'text/html' if file_path.endswith('.html') else 'application/octet-stream'
+                if file_path.endswith('.html'):
+                    content_type = 'text/html'
+                elif file_path.endswith('.js'):
+                    content_type = 'application/javascript'
+                elif file_path.endswith('.css'):
+                    content_type = 'text/css'
+                else:
+                    content_type = 'application/octet-stream'
 
             self.send_response(200)
             self.send_header('Content-type', content_type)

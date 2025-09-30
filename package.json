@@ -1,0 +1,36 @@
+{
+  "name": "splitflap-display",
+  "version": "2.0.0",
+  "description": "Authentic split-flap display simulator with realistic mechanical animations",
+  "main": "js/main.js",
+  "type": "module",
+  "scripts": {
+    "start": "python3 server.py",
+    "start-legacy": "python3 simple_server.py",
+    "dev": "python3 server.py 8001",
+    "lint": "eslint js/**/*.js",
+    "format": "prettier --write js/**/*.js css/**/*.css",
+    "test": "echo \"Error: no tests yet\" && exit 0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/whaeuser/splitflap.git"
+  },
+  "keywords": [
+    "split-flap",
+    "display",
+    "airport",
+    "animation",
+    "web-audio"
+  ],
+  "author": "whaeuser",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^8.56.0",
+    "prettier": "^3.1.1"
+  },
+  "engines": {
+    "node": ">=14.0.0",
+    "python": ">=3.8"
+  }
+}

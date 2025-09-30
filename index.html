@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentic Split-Flap Display</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="flip-board">
+        <div class="display-line" id="line1"></div>
+        <div class="display-line" id="line2"></div>
+        <div class="display-line" id="line3"></div>
+        <div class="display-line" id="line4"></div>
+        <div class="display-line" id="line5"></div>
+        <div class="display-line" id="line6"></div>
+    </div>
+
+    <!-- Hidden controls for API access -->
+    <div class="controls" style="display: none;">
+        <input type="text" id="textInput" placeholder="Text eingeben..." maxlength="16">
+        <button class="sound-toggle" id="soundToggle" onclick="toggleSound()">🔊 Sound</button>
+    </div>
+
+    <!-- Load modules -->
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
