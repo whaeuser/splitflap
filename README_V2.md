@@ -1,8 +1,24 @@
-# 🛩️ Split-Flap Display v2.0
+# 🛩️ Split-Flap Display v2.1
 
-An authentic split-flap display simulator with realistic mechanical animations, sound effects, and comprehensive API control. Now with **WebSocket support**, **modular architecture**, and **modern FastAPI backend**!
+An authentic split-flap display simulator with realistic mechanical animations, sound effects, and comprehensive API control. Now with **MQTT support**, **WebSocket**, **modular architecture**, and **modern FastAPI backend**!
 
-![Version](https://img.shields.io/badge/version-2.0.0-blue) ![API](https://img.shields.io/badge/API-REST+WebSocket-green) ![Python](https://img.shields.io/badge/python-3.8+-blue) ![License](https://img.shields.io/badge/license-MIT-green)
+![Version](https://img.shields.io/badge/version-2.1.0-blue) ![API](https://img.shields.io/badge/API-REST+WebSocket+MQTT-green) ![Python](https://img.shields.io/badge/python-3.8+-blue) ![License](https://img.shields.io/badge/license-MIT-green)
+
+## ✨ What's New in v2.1
+
+### 🔌 MQTT Integration
+- **IoT Ready**: Full MQTT broker integration
+- **Topics**: Subscribe/publish to multiple topics
+- **Automation**: Home Assistant, Node-RED, openHAB compatible
+- **Real-time**: Instant display updates via MQTT
+- **Multi-Display**: Control multiple displays from one broker
+
+### 🎨 Enhanced Admin UI
+- **MQTT Control Panel**: Live connection status and testing
+- **Version Display**: Real-time server version info
+- **Connection Monitoring**: WebSocket and MQTT status
+
+[📖 See MQTT Integration Guide](MQTT.md)
 
 ## ✨ What's New in v2.0
 
@@ -31,9 +47,13 @@ An authentic split-flap display simulator with realistic mechanical animations, 
 
 ## 🚀 Quick Start
 
-### Option 1: Modern Server (v2.0 - Recommended)
+### Option 1: Modern Server (v2.1 - Recommended)
 
 ```bash
+# Create virtual environment (recommended)
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
 # Install Python dependencies
 pip install -r requirements.txt
 
@@ -44,11 +64,24 @@ python3 server.py
 npm start
 ```
 
+**With MQTT:**
+```bash
+# Configure MQTT in .env
+cp .env.example .env
+# Edit .env and set MQTT_BROKER, MQTT_PORT, etc.
+
+# Start server with MQTT enabled
+python3 server.py
+```
+
 ### Option 2: Docker
 
 ```bash
 # Build and run with Docker Compose
 docker-compose up -d
+
+# With MQTT configuration
+MQTT_BROKER=mqtt.example.com MQTT_USERNAME=user MQTT_PASSWORD=pass docker-compose up -d
 
 # Or build manually
 docker build -t splitflap .
@@ -64,6 +97,28 @@ python3 simple_server.py 8001
 
 ## 📡 API Documentation
 
+### MQTT API (NEW in v2.1!)
+
+See [MQTT Integration Guide](MQTT.md) for complete documentation.
+
+**Quick Example:**
+```bash
+# Set display via MQTT
+mosquitto_pub -t "splitflap/display" -m '{"line1":"HELLO","line2":"MQTT"}'
+
+# Subscribe to status updates
+mosquitto_sub -t "splitflap/status" -v
+```
+
+**Supported Topics:**
+- `splitflap/command` - Generic commands
+- `splitflap/display` - Set display content
+- `splitflap/clear` - Clear display
+- `splitflap/demo` - Start demo
+- `splitflap/datetime` - DateTime mode
+- `splitflap/status` - Status updates (published)
+- `splitflap/event` - Event notifications (published)
+
 ### REST API Endpoints
 
 #### Get Server Status
@@ -76,8 +131,10 @@ GET /api/status
   "status": "ready",
   "display": "split-flap",
   "lines": 6,
-  "version": "2.0.0",
-  "features": ["websocket", "polling", "datetime", "demo", "rate-limiting"]
+  "version": "2.1.0",
+  "features": ["websocket", "polling", "datetime", "demo", "rate-limiting", "mqtt"],
+  "mqtt_enabled": true,
+  "mqtt_connected": true
 }
 ```
 
@@ -224,9 +281,11 @@ splitflap/
 - **Digital Signage**: Retro-style information displays
 - **Event Displays**: Conference schedules, departures
 - **Art Installations**: Interactive museum pieces
-- **IoT Projects**: Status displays for home automation
+- **Home Automation**: Home Assistant, openHAB, Node-RED integration via MQTT
+- **IoT Projects**: ESP32, Arduino, Raspberry Pi control via MQTT
 - **Live Streaming**: OBS browser source
-- **APIs/Webhooks**: Integrate with other services via WebSocket
+- **APIs/Webhooks**: Integrate with other services via WebSocket or MQTT
+- **Multi-Display Management**: Control multiple displays from one MQTT broker
 
 ## 🔄 Migration from v1.0 to v2.0
 

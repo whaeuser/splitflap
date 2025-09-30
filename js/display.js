@@ -4,8 +4,8 @@
  */
 
 import { audioSystem } from './audio.js';
-
-const CHARACTERS = ' ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:-./';
+import { config } from './config.js';
+import { DisplayModes } from './modes.js';
 
 class SplitFlapDisplay {
     constructor() {
@@ -13,6 +13,20 @@ class SplitFlapDisplay {
         this.isAnimating = false;
         this.datetimeMode = false;
         this.datetimeInterval = null;
+
+        // Animation queue
+        this.animationQueue = [];
+        this.processingQueue = false;
+
+        // Display modes
+        this.modes = new DisplayModes(this);
+    }
+
+    /**
+     * Get current character set
+     */
+    getCharacters() {
+        return config.getCharacters();
     }
 
     /**
@@ -84,9 +98,79 @@ class SplitFlapDisplay {
     }
 
     /**
+     * Queue an animation
+     */
+    queueAnimation(animation) {
+        if (this.animationQueue.length >= config.display.maxQueueSize) {
+            console.warn('Animation queue full, dropping oldest');
+            this.animationQueue.shift();
+        }
+
+        this.animationQueue.push(animation);
+        this.processQueue();
+    }
+
+    /**
+     * Process animation queue
+     */
+    async processQueue() {
+        if (this.processingQueue || this.animationQueue.length === 0) {
+            return;
+        }
+
+        this.processingQueue = true;
+
+        while (this.animationQueue.length > 0) {
+            const animation = this.animationQueue.shift();
+
+            try {
+                await this.executeAnimation(animation);
+            } catch (error) {
+                console.error('Animation failed:', error);
+            }
+
+            // Small delay between queued animations
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
+        this.processingQueue = false;
+    }
+
+    /**
+     * Execute a queued animation
+     */
+    async executeAnimation(animation) {
+        const { type, data } = animation;
+
+        switch (type) {
+            case 'setDisplay':
+                return new Promise(resolve => {
+                    this.setDisplay(data.line1, data.line2, data.line3, data.line4, data.line5, data.line6);
+                    setTimeout(resolve, 3500);
+                });
+
+            case 'setLine':
+                return new Promise(resolve => {
+                    this.updateLine(data.lineIndex, data.text);
+                    setTimeout(resolve, 2000);
+                });
+
+            case 'clear':
+                return new Promise(resolve => {
+                    this.clear();
+                    setTimeout(resolve, 2500);
+                });
+
+            default:
+                console.warn('Unknown animation type:', type);
+        }
+    }
+
+    /**
      * Generate flip sequence from one character to another
      */
     generateFlipSequence(fromChar, toChar) {
+        const CHARACTERS = this.getCharacters();
         const fromIndex = CHARACTERS.indexOf(fromChar);
         const toIndex = CHARACTERS.indexOf(toChar);
 

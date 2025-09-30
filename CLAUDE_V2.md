@@ -1,21 +1,27 @@
 # CLAUDE_V2.md
 
-Developer documentation for Split-Flap Display v2.0 - for use with Claude Code.
+Developer documentation for Split-Flap Display v2.1 - for use with Claude Code.
 
-## 🎯 Project Overview v2.0
+## 🎯 Project Overview v2.1
 
 Modern, modular split-flap display simulator with:
-- **Backend**: FastAPI with WebSocket support
+- **Backend**: FastAPI with WebSocket and MQTT support
 - **Frontend**: ES6 modules (separated CSS/JS)
-- **Features**: Real-time communication, API auth, rate limiting, Docker support
+- **Features**: Real-time communication, MQTT integration, API auth, rate limiting, Docker support
+- **Admin UI**: Enhanced control panel with MQTT monitoring
 
-## 🏗️ Architecture v2.0
+## 🏗️ Architecture v2.1
 
 ### Backend (Python)
 ```
-server.py (400 lines)
+server.py (600 lines)
 ├── FastAPI application
 ├── WebSocket connection manager
+├── MQTT client manager (NEW in v2.1)
+│   ├── Async message handling
+│   ├── Auto-reconnection
+│   ├── Subscribe to multiple topics
+│   └── Publish status updates
 ├── Rate limiting
 ├── API key authentication
 ├── REST endpoints (backward compatible)
@@ -50,33 +56,81 @@ css/
 index.html (24 lines)
 └── Minimal HTML structure, loads modules
 
+admin.html (616 lines) [NEW in v2.1]
+└── Enhanced admin interface with MQTT panel
+
 flipboard.html (1124 lines) [LEGACY]
 └── Original single-file version (preserved)
 ```
 
 ## 🔌 Communication Architecture
 
-### v2.0: WebSocket-First with Polling Fallback
-```
-Client → Server:
-1. Try WebSocket connection (ws://host/ws)
-2. If fails → Fallback to polling (/api/commands)
-3. Auto-reconnect on disconnect (5 attempts)
+### v2.1: Multi-Protocol Support
 
-Server → Client:
-1. WebSocket broadcast to all connected clients
-2. Command queue for polling clients
-3. Hybrid approach supports both simultaneously
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Split-Flap Server                      │
+│                                                             │
+│  ┌─────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │  REST API   │  │  WebSocket   │  │  MQTT Client │      │
+│  │  (FastAPI)  │  │  (Manager)   │  │  (paho-mqtt) │      │
+│  └─────────────┘  └──────────────┘  └──────────────┘      │
+│         │                 │                  │              │
+│         └─────────────────┼──────────────────┘              │
+│                           │                                 │
+│                    ┌──────▼──────┐                         │
+│                    │  App State  │                         │
+│                    │  & Display  │                         │
+│                    └─────────────┘                         │
+└─────────────────────────────────────────────────────────────┘
+         │                  │                   │
+         ▼                  ▼                   ▼
+   ┌──────────┐      ┌──────────┐       ┌──────────┐
+   │   HTTP   │      │    WS    │       │   MQTT   │
+   │  Clients │      │  Clients │       │  Broker  │
+   └──────────┘      └──────────┘       └──────────┘
+```
+
+**Communication Paths:**
+
+1. **WebSocket** (Primary for web clients)
+   - Real-time bidirectional
+   - Auto-reconnect
+   - Broadcast to all connected
+
+2. **REST API** (HTTP polling)
+   - Backward compatible
+   - Command queue
+   - Fallback for WebSocket
+
+3. **MQTT** (NEW in v2.1)
+   - IoT integration
+   - Pub/Sub model
+   - Multiple topic support
+   - Status broadcasting
 ```
 
 ### API Endpoints
 
-**New in v2.0:**
+**New in v2.1:**
+```
+# MQTT Topics (NEW!)
+SUB  {prefix}/command    - Generic commands
+SUB  {prefix}/display    - Set display
+SUB  {prefix}/clear      - Clear display
+SUB  {prefix}/demo       - Demo mode
+SUB  {prefix}/datetime   - DateTime mode
+PUB  {prefix}/status     - Display state (published)
+PUB  {prefix}/event      - Events (published)
+```
+
+**v2.0 Features:**
 ```
 GET  /api/display      - Get current state
-GET  /api/status       - Enhanced with version info
+GET  /api/status       - Enhanced with version, MQTT status
 WS   /ws               - WebSocket endpoint
 GET  /docs             - FastAPI auto-docs
+GET  /admin.html       - Admin interface (NEW!)
 ```
 
 **Existing (backward compatible):**
@@ -133,6 +187,19 @@ class ConnectionManager:
     disconnect(websocket)    # Remove WS client
     broadcast(message)       # Send to all clients
 
+class MQTTManager:  # NEW in v2.1
+    start()                  # Start MQTT client
+    stop()                   # Stop MQTT client
+    on_connect(...)          # Connection callback
+    on_disconnect(...)       # Disconnection callback
+    on_message(...)          # Message received callback
+    publish_status()         # Publish display state
+    publish_event(...)       # Publish event
+    _update_display(lines)   # Update from MQTT
+    _clear_display()         # Clear from MQTT
+    _start_demo()            # Demo from MQTT
+    _set_datetime(enable)    # DateTime from MQTT
+
 class RateLimiter:
     check_rate_limit(ip)     # Check if IP allowed
 
@@ -175,9 +242,9 @@ const CHARACTERS = ' ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:-./';
 // Index 37-40 = special (: - . /)
 ```
 
-## 🔐 Security Features (v2.0)
+## 🔐 Security Features
 
-### API Key Authentication
+### API Key Authentication (v2.0)
 ```python
 # Optional, configured via .env
 SPLITFLAP_API_KEY=secret123
@@ -186,7 +253,7 @@ SPLITFLAP_API_KEY=secret123
 async def verify_api_key(x_api_key: Optional[str] = Header(None))
 ```
 
-### Rate Limiting
+### Rate Limiting (v2.0)
 ```python
 # Per-IP rate limiting
 RATE_LIMIT_REQUESTS = 100  # requests
@@ -196,7 +263,18 @@ RATE_LIMIT_WINDOW = 60     # seconds
 # Old timestamps automatically pruned
 ```
 
-### CORS
+### MQTT Authentication (v2.1)
+```python
+# Optional MQTT broker authentication
+MQTT_USERNAME=username
+MQTT_PASSWORD=password
+
+# Set in MQTTManager.start()
+if MQTT_USERNAME and MQTT_PASSWORD:
+    client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
+```
+
+### CORS (v2.0)
 ```python
 # Configured in FastAPI middleware
 # Allows all origins by default (configurable)
@@ -407,6 +485,7 @@ uvicorn[standard]>=0.27.0  # ASGI server
 websockets>=12.0        # WebSocket support
 pydantic>=2.5.0         # Data validation
 python-multipart>=0.0.6 # Form parsing
+paho-mqtt>=1.6.1        # MQTT client (NEW in v2.1)
 ```
 
 ### JavaScript
@@ -414,6 +493,18 @@ python-multipart>=0.0.6 # Form parsing
 - Uses native Web Audio API
 - Uses native WebSocket API
 - Uses native Fetch API
+
+### Optional (for MQTT testing)
+```bash
+# Install mosquitto clients (macOS)
+brew install mosquitto
+
+# Install mosquitto clients (Ubuntu/Debian)
+apt-get install mosquitto-clients
+
+# Install mosquitto clients (Windows)
+# Download from https://mosquitto.org/download/
+```
 
 ## 🎓 Learning Resources
 
@@ -423,9 +514,18 @@ To understand this codebase:
 3. **Web Audio API**: https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API
 4. **ES6 Modules**: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules
 5. **CSS Animations**: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Animations
+6. **MQTT**: https://mqtt.org/ (NEW in v2.1)
+7. **Paho MQTT**: https://www.eclipse.org/paho/index.php?page=clients/python/index.php (NEW in v2.1)
+
+## 📖 Additional Documentation
+
+- [MQTT Integration Guide](MQTT.md) - Complete MQTT setup and usage
+- [CHANGELOG.md](CHANGELOG.md) - Version history
+- [README_V2.md](README_V2.md) - User documentation
+- [UPGRADE_GUIDE.md](UPGRADE_GUIDE.md) - Migration instructions
 
 ---
 
-**Version**: 2.0.0
+**Version**: 2.1.0
 **Last Updated**: 2025-09-30
 **Maintained by**: Claude Code improvements

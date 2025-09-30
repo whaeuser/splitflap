@@ -6,6 +6,8 @@
 import { display } from './display.js';
 import { audioSystem } from './audio.js';
 import { api } from './api.js';
+import { config } from './config.js';
+import { pluginManager } from './plugins.js';
 
 /**
  * Toggle sound on/off
@@ -102,13 +104,28 @@ function init() {
     api.initialize();
     console.log('✓ API initialized');
 
+    // Initialize config
+    console.log('✓ Configuration system ready');
+
+    // Initialize plugin manager
+    console.log('✓ Plugin system ready');
+
+    // Expose to window for external access
+    window.splitflapConfig = config;
+    window.splitflapPlugins = pluginManager;
+    window.splitflapModes = display.modes;
+
     // Create iOS audio unlock button if needed
     createAudioUnlockButton();
 
     // Show welcome sequence
     showWelcomeSequence();
 
-    console.log('🚀 Split-Flap Display ready!');
+    console.log('🚀 Split-Flap Display v2.1 ready!');
+    console.log('   ✓ Animation Queue');
+    console.log('   ✓ Extended Character Sets (German, French)');
+    console.log('   ✓ Display Modes (Scrolling, Marquee, Blink)');
+    console.log('   ✓ Plugin System');
 }
 
 // Initialize when DOM is ready

@@ -2,6 +2,126 @@
 
 All notable changes to the Split-Flap Display project.
 
+## [2.1.0] - 2025-09-30
+
+### 🎉 IoT Integration Release
+
+Major update adding **MQTT support** for IoT integration and enhanced **Admin UI**.
+
+### ✨ Added - MQTT Integration
+
+- **MQTT Client** (`server.py`)
+  - Full MQTT broker integration using `paho-mqtt`
+  - Asynchronous message handling
+  - Auto-reconnection with keep-alive
+  - Optional authentication (username/password)
+  - Configurable QoS levels
+
+- **MQTT Topics**
+  - **Subscribe**: `{prefix}/command`, `{prefix}/display`, `{prefix}/clear`, `{prefix}/demo`, `{prefix}/datetime`
+  - **Publish**: `{prefix}/status`, `{prefix}/event`
+  - Configurable topic prefix via `.env`
+
+- **MQTT Configuration** (`.env`)
+  - `MQTT_BROKER` - Broker hostname/IP
+  - `MQTT_PORT` - Broker port (default: 1883)
+  - `MQTT_USERNAME` / `MQTT_PASSWORD` - Optional auth
+  - `MQTT_TOPIC_PREFIX` - Topic prefix (default: "splitflap")
+  - `MQTT_QOS` - Quality of Service level (0-2)
+
+- **MQTT Documentation** (`MQTT.md`)
+  - Complete integration guide
+  - Message formats and examples
+  - mosquitto_pub/sub examples
+  - Python, Node-RED, Home Assistant integration
+  - Troubleshooting and security best practices
+
+### ✨ Added - Admin UI Enhancements
+
+- **MQTT Control Panel** (`admin.html`)
+  - Real-time MQTT connection status
+  - Broker information display
+  - Subscribed topics overview
+  - Test message generator
+  - MQTT activity log (prepared)
+  - Auto-hides when MQTT disabled
+
+- **Enhanced Status Display**
+  - Server version display
+  - Separate MQTT status indicator
+  - Connection state monitoring (Connected/Connecting/Disabled)
+
+### 🔄 Changed
+
+- **Version**: Updated to v2.1.0
+- **API Status Endpoint**: Now includes `mqtt_enabled` and `mqtt_connected` fields
+- **Server Startup**: Shows MQTT configuration if enabled
+- **Dependencies**: Added `paho-mqtt>=1.6.1`
+
+### 🐛 Fixed
+
+- MQTT gracefully disabled if broker not configured
+- Proper async handling of MQTT callbacks
+- MQTT cleanup on server shutdown
+
+### 📦 New Files
+
+```
+MQTT.md                     - MQTT integration guide
+venv/                       - Python virtual environment (gitignored)
+```
+
+### 🔄 Updated Files
+
+```
+server.py                   - MQTT client integration
+admin.html                  - MQTT control panel
+requirements.txt            - Added paho-mqtt
+.env.example                - MQTT configuration options
+CHANGELOG.md                - This file
+```
+
+### 🎯 Use Cases Enabled
+
+- **Home Automation**: Home Assistant, openHAB integration
+- **IoT Devices**: ESP32, Arduino, Raspberry Pi control
+- **Workflow Automation**: Node-RED, n8n integration
+- **Remote Control**: MQTT mobile apps
+- **Multi-Display Management**: Control multiple displays from one broker
+
+### 📊 MQTT Message Examples
+
+**Set display:**
+```bash
+mosquitto_pub -t "splitflap/display" -m '{"line1":"HELLO","line2":"WORLD"}'
+```
+
+**Clear display:**
+```bash
+mosquitto_pub -t "splitflap/clear" -m ""
+```
+
+**Subscribe to status:**
+```bash
+mosquitto_sub -t "splitflap/status" -v
+```
+
+### 🔒 Security
+
+- Optional MQTT authentication
+- TLS/SSL support (configure broker)
+- ACL rules recommended
+- Network segmentation best practices documented
+
+### ⚡ Performance
+
+- Async MQTT handling (non-blocking)
+- Efficient message broadcasting
+- Auto-reconnection on disconnect
+- Keep-alive monitoring
+
+---
+
 ## [2.0.0] - 2025-09-30
 
 ### 🎉 Major Release - Complete Modernization

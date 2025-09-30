@@ -14,3 +14,6 @@ pydantic>=2.5.0
 
 # Python 3.7+ compatibility
 python-multipart>=0.0.6
+
+# MQTT client for IoT integration
+paho-mqtt>=1.6.1
