@@ -11,12 +11,26 @@ if ! command -v python3 &> /dev/null; then
     exit 1
 fi
 
+# Create virtual environment if it doesn't exist
+if [ ! -d "venv" ]; then
+    echo "📦 Creating virtual environment..."
+    python3 -m venv venv
+    if [ $? -ne 0 ]; then
+        echo "❌ Failed to create virtual environment."
+        exit 1
+    fi
+fi
+
+# Activate virtual environment
+echo "🔧 Activating virtual environment..."
+source venv/bin/activate
+
 # Check if required packages are installed
 if ! python3 -c "import fastapi" &> /dev/null; then
     echo "📦 Installing required Python packages..."
-    pip3 install -r requirements.txt
+    pip install -r requirements.txt
     if [ $? -ne 0 ]; then
-        echo "❌ Failed to install dependencies. Please run: pip3 install -r requirements.txt"
+        echo "❌ Failed to install dependencies. Please run: pip install -r requirements.txt"
         exit 1
     fi
 fi
