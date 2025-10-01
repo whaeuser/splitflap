@@ -349,8 +349,9 @@
                     <option value="datetime">datetime</option>
                     <option value="command">command</option>
                 </select>
-                <textarea id="mqttTestPayload" placeholder='{"line1":"TEST","line2":"MQTT"}'></textarea>
-                <button class="btn btn-small" onclick="sendMQTTTest()">Send MQTT Test</button>
+                <textarea id="mqttTestPayload" style="cursor: text;">{"line1":"TEST","line2":"MQTT"}</textarea>
+                <button class="btn btn-small" onclick="copyMQTTCommand()">Copy Command</button>
+                <button class="btn btn-small btn-success" onclick="copyMQTTJSON()">Copy JSON</button>
             </div>
 
             <div class="form-group">
@@ -561,10 +562,17 @@
                         const mqttPanel = document.getElementById('mqttPanel');
                         mqttPanel.style.display = 'block';
 
+                        // Update broker and topic prefix
+                        document.getElementById('mqttBroker').textContent = data.mqtt_broker || '-';
+                        document.getElementById('mqttPrefix').textContent = data.mqtt_topic_prefix || '-';
+
                         if (data.mqtt_connected) {
                             document.getElementById('mqttStatus').className = 'status-indicator status-online';
                             document.getElementById('mqttStatusText').textContent = 'MQTT: Connected';
                             document.getElementById('mqttDetailedStatus').textContent = 'Connected';
+
+                            // Update topics list with actual prefix
+                            updateMQTTInfo(data.mqtt_topic_prefix);
                         } else {
                             document.getElementById('mqttStatus').className = 'status-indicator status-warning';
                             document.getElementById('mqttStatusText').textContent = 'MQTT: Connecting...';
@@ -584,36 +592,150 @@
             }
         }
 
-        // Send MQTT test message (via API)
-        function sendMQTTTest() {
-            const topic = document.getElementById('mqttTestTopic').value;
-            const payload = document.getElementById('mqttTestPayload').value;
+        // Global variable to store current prefix
+        let currentTopicPrefix = 'splitflap';
 
-            alert('MQTT test messages must be sent directly to your MQTT broker.\n\n' +
-                  'Example using mosquitto_pub:\n' +
-                  'mosquitto_pub -t "splitflap/' + topic + '" -m \'' + payload + '\'');
+        // Copy MQTT command to clipboard
+        async function copyMQTTCommand() {
+            const topic = document.getElementById('mqttTestTopic').value;
+            const payload = document.getElementById('mqttTestPayload').value || '{"line1":"TEST","line2":"MQTT"}';
+
+            const command = `mosquitto_pub -t "${currentTopicPrefix}/${topic}" -m '${payload}'`;
+
+            await copyToClipboard(command, event.target, 'Copy Command');
+        }
+
+        // Copy MQTT JSON to clipboard
+        async function copyMQTTJSON() {
+            const payload = document.getElementById('mqttTestPayload').value || '{"line1":"TEST","line2":"MQTT"}';
+
+            await copyToClipboard(payload, event.target, 'Copy JSON');
+        }
+
+        // Generic copy to clipboard function
+        async function copyToClipboard(text, btn, originalText) {
+            try {
+                await navigator.clipboard.writeText(text);
+
+                // Show feedback
+                btn.textContent = 'Copied!';
+                btn.style.background = 'linear-gradient(135deg, #4ade80, #22c55e)';
+
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '';
+                }, 2000);
+            } catch (err) {
+                // Fallback for older browsers
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+
+                alert('Copied:\n' + text);
+            }
         }
 
         // Update MQTT info display
-        function updateMQTTInfo() {
-            // This would be populated from server config endpoint if we add one
-            // For now, show generic info
+        function updateMQTTInfo(prefix = 'splitflap') {
+            currentTopicPrefix = prefix;  // Store for copy function
             const topicsDiv = document.getElementById('mqttTopics');
             topicsDiv.innerHTML = `
-                <div>→ splitflap/command</div>
-                <div>→ splitflap/display</div>
-                <div>→ splitflap/clear</div>
-                <div>→ splitflap/demo</div>
-                <div>→ splitflap/datetime</div>
-                <div style="margin-top:10px; color:#60a5fa;">← splitflap/status</div>
-                <div style="color:#60a5fa;">← splitflap/event</div>
+                <div>→ ${prefix}/command</div>
+                <div>→ ${prefix}/display</div>
+                <div>→ ${prefix}/clear</div>
+                <div>→ ${prefix}/demo</div>
+                <div>→ ${prefix}/datetime</div>
+                <div style="margin-top:10px; color:#60a5fa;">← ${prefix}/status</div>
+                <div style="color:#60a5fa;">← ${prefix}/event</div>
             `;
+        }
+
+        // WebSocket connection for live updates and MQTT log
+        let ws = null;
+        const mqttActivityLog = [];
+        const MAX_LOG_ENTRIES = 50;
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+
+                // Handle MQTT activity messages
+                if (data.action === 'mqttActivity') {
+                    addMQTTLogEntry(data.topic, data.payload, data.timestamp);
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket closed, reconnecting in 5s...');
+                setTimeout(connectWebSocket, 5000);
+            };
+        }
+
+        function addMQTTLogEntry(topic, payload, timestamp) {
+            const date = new Date(timestamp * 1000);
+            const timeStr = date.toLocaleTimeString('de-DE');
+
+            // Truncate long payloads
+            let displayPayload = payload;
+            if (payload.length > 60) {
+                displayPayload = payload.substring(0, 60) + '...';
+            }
+
+            mqttActivityLog.unshift({
+                time: timeStr,
+                topic: topic,
+                payload: displayPayload
+            });
+
+            // Keep only last MAX_LOG_ENTRIES
+            if (mqttActivityLog.length > MAX_LOG_ENTRIES) {
+                mqttActivityLog.pop();
+            }
+
+            // Update display
+            updateMQTTLogDisplay();
+        }
+
+        function updateMQTTLogDisplay() {
+            const logDiv = document.getElementById('mqttLog');
+
+            if (mqttActivityLog.length === 0) {
+                logDiv.innerHTML = 'No activity yet...';
+                return;
+            }
+
+            logDiv.innerHTML = mqttActivityLog.map(entry => `
+                <div class="mqtt-log-entry">
+                    <span style="color:#94a3b8;">[${entry.time}]</span>
+                    <span class="mqtt-topic">${entry.topic}</span>:
+                    <span class="mqtt-payload">${entry.payload}</span>
+                </div>
+            `).join('');
         }
 
         // Check status every 5 seconds
         setInterval(checkStatus, 5000);
         checkStatus();
         updateMQTTInfo();
+        connectWebSocket();
     </script>
 </body>
 </html>

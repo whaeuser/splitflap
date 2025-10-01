@@ -65,6 +65,8 @@ class StatusResponse(BaseModel):
     features: List[str] = ["websocket", "polling", "datetime", "demo"]
     mqtt_enabled: bool = False
     mqtt_connected: bool = False
+    mqtt_broker: Optional[str] = None
+    mqtt_topic_prefix: Optional[str] = None
 
 class SuccessResponse(BaseModel):
     status: str = "success"
@@ -164,6 +166,7 @@ class MQTTManager:
         self.client = None
         self.connected = False
         self.enabled = MQTT_AVAILABLE and MQTT_BROKER is not None
+        self.loop = None  # Will store the asyncio event loop
 
     def on_connect(self, client, userdata, flags, reason_code, properties):
         """Callback when connected to MQTT broker"""
@@ -199,6 +202,12 @@ class MQTTManager:
             payload = msg.payload.decode('utf-8')
             print(f"← MQTT: {topic} = {payload}")
 
+            # Log MQTT activity for WebSocket clients
+            asyncio.run_coroutine_threadsafe(
+                self._log_mqtt_activity(topic, payload),
+                self.loop
+            )
+
             # Parse JSON payload
             try:
                 data = json.loads(payload)
@@ -219,17 +228,17 @@ class MQTTManager:
                             lines.append(data.get(f"line{i}", ""))
 
                 # Schedule display update
-                asyncio.create_task(self._update_display(lines))
+                asyncio.run_coroutine_threadsafe(self._update_display(lines), self.loop)
 
             elif topic.endswith('/clear'):
-                asyncio.create_task(self._clear_display())
+                asyncio.run_coroutine_threadsafe(self._clear_display(), self.loop)
 
             elif topic.endswith('/demo'):
-                asyncio.create_task(self._start_demo())
+                asyncio.run_coroutine_threadsafe(self._start_demo(), self.loop)
 
             elif topic.endswith('/datetime'):
                 enable = data.get("enable", True) if isinstance(data, dict) else True
-                asyncio.create_task(self._set_datetime(enable))
+                asyncio.run_coroutine_threadsafe(self._set_datetime(enable), self.loop)
 
             elif topic.endswith('/command'):
                 # Generic command handler
@@ -237,16 +246,25 @@ class MQTTManager:
                     action = data["action"]
                     if action == "setDisplay":
                         lines = [data.get(f"line{i}", "") for i in range(1, 7)]
-                        asyncio.create_task(self._update_display(lines))
+                        asyncio.run_coroutine_threadsafe(self._update_display(lines), self.loop)
                     elif action == "clear":
-                        asyncio.create_task(self._clear_display())
+                        asyncio.run_coroutine_threadsafe(self._clear_display(), self.loop)
                     elif action == "demo":
-                        asyncio.create_task(self._start_demo())
+                        asyncio.run_coroutine_threadsafe(self._start_demo(), self.loop)
                     elif action == "datetime":
-                        asyncio.create_task(self._set_datetime(data.get("enable", True)))
+                        asyncio.run_coroutine_threadsafe(self._set_datetime(data.get("enable", True)), self.loop)
 
         except Exception as e:
             print(f"Error processing MQTT message: {e}")
+
+    async def _log_mqtt_activity(self, topic, payload):
+        """Log MQTT activity and broadcast to WebSocket clients"""
+        await manager.broadcast({
+            "action": "mqttActivity",
+            "topic": topic,
+            "payload": payload,
+            "timestamp": time.time()
+        })
 
     async def _update_display(self, lines):
         """Update display and broadcast"""
@@ -320,13 +338,14 @@ class MQTTManager:
         except Exception as e:
             print(f"Error publishing MQTT event: {e}")
 
-    def start(self):
+    def start(self, loop):
         """Start MQTT client"""
         if not self.enabled:
             print("MQTT disabled (no broker configured)")
             return
 
         try:
+            self.loop = loop  # Store the asyncio event loop
             self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
             self.client.on_connect = self.on_connect
             self.client.on_disconnect = self.on_disconnect
@@ -425,7 +444,9 @@ async def get_status():
         version="2.1.0",
         features=features,
         mqtt_enabled=mqtt_manager.enabled,
-        mqtt_connected=mqtt_manager.connected
+        mqtt_connected=mqtt_manager.connected,
+        mqtt_broker=f"{MQTT_BROKER}:{MQTT_PORT}" if mqtt_manager.enabled else None,
+        mqtt_topic_prefix=MQTT_TOPIC_PREFIX if mqtt_manager.enabled else None
     )
 
 @app.get("/api/display", response_model=DisplayState)
@@ -577,6 +598,21 @@ if os.path.exists("css"):
 if os.path.exists("js"):
     app.mount("/js", StaticFiles(directory="js"), name="js")
 
+async def start_mqtt():
+    """Startup event handler to initialize MQTT"""
+    loop = asyncio.get_event_loop()
+    mqtt_manager.start(loop)
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize MQTT on startup"""
+    await start_mqtt()
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup MQTT on shutdown"""
+    mqtt_manager.stop()
+
 def run_server(host="0.0.0.0", port=8001):
     """Run the FastAPI server"""
     print(f"")
@@ -600,14 +636,7 @@ def run_server(host="0.0.0.0", port=8001):
     print(f"Press Ctrl+C to stop the server")
     print(f"")
 
-    # Start MQTT client
-    mqtt_manager.start()
-
-    try:
-        uvicorn.run(app, host=host, port=port, log_level="info")
-    finally:
-        # Cleanup MQTT on shutdown
-        mqtt_manager.stop()
+    uvicorn.run(app, host=host, port=port, log_level="info")
 
 if __name__ == "__main__":
     import sys
