@@ -17,3 +17,6 @@ python-multipart>=0.0.6
 
 # MQTT client for IoT integration
 paho-mqtt>=1.6.1
+
+# Environment variable loading from .env file
+python-dotenv>=1.0.0

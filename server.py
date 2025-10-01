@@ -7,6 +7,10 @@ import asyncio
 import os
 from typing import Optional, List
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends, Header
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -161,9 +165,9 @@ class MQTTManager:
         self.connected = False
         self.enabled = MQTT_AVAILABLE and MQTT_BROKER is not None
 
-    def on_connect(self, client, userdata, flags, rc):
+    def on_connect(self, client, userdata, flags, reason_code, properties):
         """Callback when connected to MQTT broker"""
-        if rc == 0:
+        if reason_code == 0:
             self.connected = True
             print(f"✓ MQTT connected to {MQTT_BROKER}:{MQTT_PORT}")
 
@@ -179,14 +183,14 @@ class MQTTManager:
                 client.subscribe(topic, qos=MQTT_QOS)
                 print(f"  → Subscribed to {topic}")
         else:
-            print(f"✗ MQTT connection failed with code {rc}")
+            print(f"✗ MQTT connection failed with code {reason_code}")
             self.connected = False
 
-    def on_disconnect(self, client, userdata, rc):
+    def on_disconnect(self, client, userdata, disconnect_flags, reason_code, properties):
         """Callback when disconnected from MQTT broker"""
         self.connected = False
-        if rc != 0:
-            print(f"⚠ MQTT unexpected disconnect (code {rc}), reconnecting...")
+        if reason_code != 0:
+            print(f"⚠ MQTT unexpected disconnect (code {reason_code}), reconnecting...")
 
     def on_message(self, client, userdata, msg):
         """Callback when message received from MQTT broker"""
@@ -323,7 +327,7 @@ class MQTTManager:
             return
 
         try:
-            self.client = mqtt.Client()
+            self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
             self.client.on_connect = self.on_connect
             self.client.on_disconnect = self.on_disconnect
             self.client.on_message = self.on_message
