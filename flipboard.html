@@ -308,6 +308,11 @@
         let datetimeMode = false;
         let datetimeInterval = null;
 
+        // Scrolling and Marquee mode state
+        let scrollingInterval = null;
+        let scrollingLineIndex = null;
+        let marqueeInterval = null;
+
         // Initialize audio context
         function initAudio() {
             if (!audioContext) {
@@ -850,6 +855,118 @@
             console.log('DateTime mode disabled');
         }
 
+        // Scrolling text mode - scrolls long text on a single line
+        function startScrollingMode(lineIndex, text, speed = 500) {
+            // Stop any existing scrolling
+            stopScrollingMode();
+
+            if (!text || text.trim() === '') {
+                console.warn('No text provided for scrolling');
+                return;
+            }
+
+            // Ensure text is at least 16 characters for smooth scrolling
+            const paddedText = text.toUpperCase() + '        '; // Add spacing
+            scrollingLineIndex = lineIndex;
+
+            let position = 0;
+
+            function scroll() {
+                const displayText = paddedText.substring(position, position + 16);
+                updateLine(lineIndex, displayText.padEnd(16, ' '));
+
+                position++;
+                if (position >= paddedText.length) {
+                    position = 0;
+                }
+            }
+
+            // Initial display
+            scroll();
+
+            // Start scrolling interval
+            scrollingInterval = setInterval(scroll, speed);
+            console.log(`Scrolling mode started on line ${lineIndex} with text: "${text}"`);
+        }
+
+        function stopScrollingMode() {
+            if (scrollingInterval) {
+                clearInterval(scrollingInterval);
+                scrollingInterval = null;
+                scrollingLineIndex = null;
+                console.log('Scrolling mode stopped');
+            }
+        }
+
+        // Marquee mode - scrolls text vertically across all lines
+        function startMarqueeMode(text, speed = 300) {
+            // Stop any existing marquee
+            stopMarqueeMode();
+
+            if (!text || text.trim() === '') {
+                console.warn('No text provided for marquee');
+                return;
+            }
+
+            // Split text into words and create scrolling lines
+            const words = text.toUpperCase().split(' ');
+            const lines = [];
+            let currentLine = '';
+
+            // Build lines from words (max 16 chars per line)
+            words.forEach(word => {
+                if ((currentLine + ' ' + word).trim().length <= 16) {
+                    currentLine = (currentLine + ' ' + word).trim();
+                } else {
+                    if (currentLine) lines.push(currentLine.padEnd(16, ' '));
+                    currentLine = word;
+                }
+            });
+            if (currentLine) lines.push(currentLine.padEnd(16, ' '));
+
+            // Add empty lines for smooth scrolling
+            for (let i = 0; i < 6; i++) {
+                lines.push(''.padEnd(16, ' '));
+            }
+
+            let position = 0;
+
+            function marquee() {
+                for (let i = 0; i < 6; i++) {
+                    const lineIndex = (position + i) % lines.length;
+                    updateLine(i, lines[lineIndex]);
+                }
+
+                position++;
+                if (position >= lines.length) {
+                    position = 0;
+                }
+            }
+
+            // Initial display
+            marquee();
+
+            // Start marquee interval
+            marqueeInterval = setInterval(marquee, speed);
+            console.log(`Marquee mode started with ${lines.length} lines`);
+        }
+
+        function stopMarqueeMode() {
+            if (marqueeInterval) {
+                clearInterval(marqueeInterval);
+                marqueeInterval = null;
+                console.log('Marquee mode stopped');
+            }
+        }
+
+        // Stop all animated modes
+        function stopAllAnimatedModes() {
+            stopDateTimeMode();
+            stopScrollingMode();
+            stopMarqueeMode();
+            console.log('All animated modes stopped');
+        }
+
         function updateDateTimeDisplay() {
             if (!datetimeMode) return;
 
@@ -940,6 +1057,23 @@
             // Check if datetime mode is active
             isDateTimeMode: function() {
                 return datetimeMode;
+            },
+
+            // Start scrolling text on a specific line
+            startScrolling: function(lineIndex, text, speed = 500) {
+                if (lineIndex >= 0 && lineIndex <= 5) {
+                    startScrollingMode(lineIndex, text, speed);
+                }
+            },
+
+            // Start marquee text across all lines
+            startMarquee: function(text, speed = 300) {
+                startMarqueeMode(text, speed);
+            },
+
+            // Stop all animated modes
+            stopAllModes: function() {
+                stopAllAnimatedModes();
             }
         };
 
@@ -1025,7 +1159,9 @@
 
         // PostMessage API for iframe communication
         window.addEventListener('message', function(event) {
-            const { action, data } = event.data;
+            const { action, data, command, params } = event.data;
+
+            console.log('Received postMessage:', event.data);
 
             switch (action) {
                 case 'setDisplay':
@@ -1052,6 +1188,16 @@
                         display: window.splitflapAPI.getCurrentDisplay(),
                         isAnimating: window.splitflapAPI.isAnimating()
                     }, event.origin);
+                    break;
+                case 'customCommand':
+                    // Handle custom commands from admin UI
+                    console.log('Custom command:', command, params);
+                    if (command && window.splitflapAPI[command]) {
+                        console.log('Executing command:', command);
+                        window.splitflapAPI[command](...(params || []));
+                    } else {
+                        console.error('Command not found:', command, 'Available:', Object.keys(window.splitflapAPI));
+                    }
                     break;
             }
         });

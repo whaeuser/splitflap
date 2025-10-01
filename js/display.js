@@ -195,9 +195,10 @@ class SplitFlapDisplay {
                 currentIndex = (fromIndex - Math.floor((backward * i) / steps) + CHARACTERS.length) % CHARACTERS.length;
             }
 
+            const flipDuration = config.getTiming('flipDuration');
             sequence.push({
                 char: CHARACTERS[currentIndex],
-                duration: i === steps ? 300 : 150, // Last flip is slower
+                duration: i === steps ? flipDuration : flipDuration / 2, // Last flip is slower
                 isLast: i === steps
             });
         }

@@ -270,31 +270,18 @@
             </div>
         </div>
 
+
         <div class="main-grid">
-            <!-- Display Modes -->
+            <!-- Presets -->
             <div class="panel">
-                <h2>Display Modes</h2>
-                <div class="form-group">
-                    <label>Scrolling Text (Zeile):</label>
-                    <select id="scrollLine">
-                        <option value="0">Zeile 1</option>
-                        <option value="1">Zeile 2</option>
-                        <option value="2">Zeile 3</option>
-                        <option value="3">Zeile 4</option>
-                        <option value="4">Zeile 5</option>
-                        <option value="5">Zeile 6</option>
-                    </select>
-                    <input type="text" id="scrollText" placeholder="Langer scrollender Text...">
-                    <button class="btn btn-small" onclick="startScrolling()">Start Scrolling</button>
-                </div>
-                <div class="form-group">
-                    <label>Marquee Text:</label>
-                    <input type="text" id="marqueeText" placeholder="Marquee Text über alle Zeilen">
-                    <button class="btn btn-small" onclick="startMarquee()">Start Marquee</button>
-                </div>
-                <div class="form-group">
-                    <button class="btn btn-secondary btn-small" onclick="startDateTimeMode()">DateTime Mode</button>
-                    <button class="btn btn-danger btn-small" onclick="stopModes()">Stop All Modes</button>
+                <h2>Presets</h2>
+                <div class="presets">
+                    <div class="preset" onclick="loadPreset('airport')">✈️ Flughafen</div>
+                    <div class="preset" onclick="loadPreset('train')">🚂 Bahnhof</div>
+                    <div class="preset" onclick="loadPreset('welcome')">👋 Willkommen</div>
+                    <div class="preset" onclick="loadPreset('time')">🕐 Uhrzeit</div>
+                    <div class="preset" onclick="loadPreset('weather')">🌤️ Wetter</div>
+                    <div class="preset" onclick="loadPreset('event')">🎉 Event</div>
                 </div>
             </div>
 
@@ -302,32 +289,10 @@
             <div class="panel">
                 <h2>Configuration</h2>
                 <div class="form-group">
-                    <label>Zeichensatz:</label>
-                    <select id="charSet" onchange="changeCharset()">
-                        <option value="basic">Basic (A-Z, 0-9)</option>
-                        <option value="german">German (+ Ä, Ö, Ü, ß)</option>
-                        <option value="french">French (+ À, É, È, etc.)</option>
-                        <option value="extended">Extended (+ !?@#$%)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Animationsgeschwindigkeit:</label>
-                    <input type="range" id="flipSpeed" min="100" max="500" value="300" oninput="updateSpeed(this.value)">
+                    <label>Flip Geschwindigkeit:</label>
+                    <input type="range" id="flipSpeed" min="100" max="1000" value="300" step="50" oninput="updateFlipSpeed(this.value)">
                     <span id="speedValue">300ms</span>
                 </div>
-            </div>
-        </div>
-
-        <!-- Presets -->
-        <div class="panel">
-            <h2>Presets</h2>
-            <div class="presets">
-                <div class="preset" onclick="loadPreset('airport')">✈️ Flughafen</div>
-                <div class="preset" onclick="loadPreset('train')">🚂 Bahnhof</div>
-                <div class="preset" onclick="loadPreset('welcome')">👋 Willkommen</div>
-                <div class="preset" onclick="loadPreset('time')">🕐 Uhrzeit</div>
-                <div class="preset" onclick="loadPreset('weather')">🌤️ Wetter</div>
-                <div class="preset" onclick="loadPreset('event')">🎉 Event</div>
             </div>
         </div>
 
@@ -428,56 +393,18 @@
             }
         }
 
-        // Display modes (access via preview iframe)
-        function startScrolling() {
-            const line = parseInt(document.getElementById('scrollLine').value);
-            const text = document.getElementById('scrollText').value;
-            const iframe = document.getElementById('preview');
-            iframe.contentWindow.postMessage({
-                action: 'customCommand',
-                command: 'startScrolling',
-                params: [line, text]
-            }, '*');
-        }
-
-        function startMarquee() {
-            const text = document.getElementById('marqueeText').value;
-            const iframe = document.getElementById('preview');
-            iframe.contentWindow.postMessage({
-                action: 'customCommand',
-                command: 'startMarquee',
-                params: [text]
-            }, '*');
-        }
-
-        function stopModes() {
-            const iframe = document.getElementById('preview');
-            iframe.contentWindow.postMessage({
-                action: 'customCommand',
-                command: 'stopAllModes'
-            }, '*');
-        }
-
-        // Change charset
-        function changeCharset() {
-            const charset = document.getElementById('charSet').value;
-            const iframe = document.getElementById('preview');
-            iframe.contentWindow.postMessage({
-                action: 'customCommand',
-                command: 'changeCharset',
-                params: [charset]
-            }, '*');
-        }
-
-        // Update animation speed
-        function updateSpeed(value) {
+        // Update flip speed
+        function updateFlipSpeed(value) {
             document.getElementById('speedValue').textContent = value + 'ms';
             const iframe = document.getElementById('preview');
-            iframe.contentWindow.postMessage({
-                action: 'customCommand',
-                command: 'setSpeed',
-                params: [parseInt(value)]
-            }, '*');
+
+            // Send to iframe - this will update the config if supported
+            if (iframe && iframe.contentWindow) {
+                iframe.contentWindow.postMessage({
+                    action: 'setFlipSpeed',
+                    speed: parseInt(value)
+                }, '*');
+            }
         }
 
         // Load presets

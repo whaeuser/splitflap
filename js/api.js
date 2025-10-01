@@ -5,6 +5,7 @@
 
 import { display } from './display.js';
 import { audioSystem } from './audio.js';
+import { config } from './config.js';
 
 class API {
     constructor() {
@@ -237,6 +238,20 @@ class API {
                         soundEnabled: audioSystem.isEnabled()
                     }, event.origin);
                     break;
+                case 'customCommand':
+                    // Handle custom commands from admin UI
+                    const { command, params } = event.data;
+                    if (command && window.splitflapAPI[command]) {
+                        window.splitflapAPI[command](...(params || []));
+                    }
+                    break;
+                case 'setFlipSpeed':
+                    // Update flip speed
+                    if (event.data.speed) {
+                        config.setTiming('flipDuration', event.data.speed);
+                        console.log(`Flip speed updated to ${event.data.speed}ms`);
+                    }
+                    break;
             }
         });
     }
@@ -299,6 +314,21 @@ class API {
             // Check if sound is enabled
             isSoundEnabled: () => {
                 return audioSystem.isEnabled();
+            },
+
+            // Start scrolling text on a specific line
+            startScrolling: (lineIndex, text, loop = true) => {
+                display.modes.startScrolling(lineIndex, text, loop);
+            },
+
+            // Start marquee text across all lines
+            startMarquee: (text, loop = true) => {
+                display.modes.startMarquee(text, loop);
+            },
+
+            // Stop all animated modes
+            stopAllModes: () => {
+                display.modes.stopAllModes();
             }
         };
     }
