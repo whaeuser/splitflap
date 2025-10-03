@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Courier New', monospace;
-            background: #000000;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
             height: 100vh;
             display: flex;
             align-items: center;
@@ -25,16 +25,31 @@
         }
 
         .flip-board {
-            background: transparent;
-            padding: 0;
-            border: none;
-            box-shadow: none;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+            background: linear-gradient(to bottom, #1a1a1a 0%, #0f0f0f 100%);
+            padding: 4vw 6vw;
+            border: 1.2vw solid #0a0a0a;
+            border-radius: 2vw;
+            box-shadow:
+                0 2vw 6vw rgba(0, 0, 0, 0.8),
+                inset 0 0 2vw rgba(0, 0, 0, 0.5),
+                0 0 0 0.3vw #2a2a2a;
+            position: relative;
+            transform: perspective(150vw) rotateX(2deg);
+            transform-style: preserve-3d;
+        }
+
+        /* Frame shadow to create depth */
+        .flip-board::before {
+            content: '';
+            position: absolute;
+            top: -1vw;
+            left: -1vw;
+            right: -1vw;
+            bottom: -1vw;
+            background: linear-gradient(135deg, rgba(40,40,40,0.4), rgba(10,10,10,0.8));
+            border-radius: 2.5vw;
+            z-index: -1;
+            filter: blur(1vw);
         }
 
         .display-line {
@@ -48,21 +63,26 @@
             width: 5.5vw;
             height: 8.25vw;
             position: relative;
-            background: #1a1a1a;
-            border: 0.15vw solid #333;
+            background: linear-gradient(to bottom, #1e1e1e 0%, #0e0e0e 100%);
+            border: 0.15vw solid #222;
             border-radius: 0.6vw;
             overflow: hidden;
             margin: 0.15vw;
             perspective: 45vw;
+            box-shadow:
+                0 0.3vw 0.8vw rgba(0, 0, 0, 0.6),
+                inset 0 0.1vw 0.2vw rgba(255, 255, 255, 0.05),
+                inset 0 -0.1vw 0.2vw rgba(0, 0, 0, 0.5);
         }
 
         .flip-half {
             position: absolute;
             width: 100%;
             height: 50%;
-            background: linear-gradient(to bottom, #2a2a2a 0%, #1a1a1a 100%);
+            background: linear-gradient(to bottom, #2d2d2a 0%, #1d1d1a 100%);
             overflow: hidden;
             transform-style: preserve-3d;
+            filter: brightness(0.95) contrast(1.05);
         }
 
         .flip-char-content {
@@ -74,10 +94,14 @@
             justify-content: center;
             font-size: 7vw;
             font-weight: bold;
-            color: #fff;
+            color: #f5f5dc;
             text-align: center;
             line-height: 8.25vw;
             overflow: hidden;
+            text-shadow:
+                0 0.1vw 0.3vw rgba(0, 0, 0, 0.8),
+                0 0 0.2vw rgba(245, 245, 220, 0.3);
+            filter: brightness(0.98);
         }
 
         .flip-top {
@@ -92,8 +116,9 @@
 
         .flip-bottom {
             bottom: 0;
-            background: linear-gradient(to bottom, #1a1a1a 0%, #0a0a0a 100%);
+            background: linear-gradient(to bottom, #1a1a17 0%, #0a0a08 100%);
             transform-origin: top;
+            filter: brightness(0.92) contrast(1.08);
         }
 
         .flip-bottom .flip-char-content {
@@ -127,13 +152,16 @@
             top: 50%;
             left: 0.3vw;
             right: 0.3vw;
-            height: 0.15vw;
-            background: #333;
+            height: 0.2vw;
+            background: linear-gradient(to bottom, #1a1a1a, #0a0a0a, #1a1a1a);
+            box-shadow:
+                0 0 0.3vw rgba(0, 0, 0, 0.8),
+                0 0.1vw 0.1vw rgba(0, 0, 0, 0.5);
             z-index: 10;
-            transform: translateY(-0.075vw);
+            transform: translateY(-0.1vw);
         }
 
-        /* Glossy effect */
+        /* Enhanced glossy and wear effects */
         .flip-char::after {
             content: '';
             position: absolute;
@@ -141,13 +169,24 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: linear-gradient(
-                to right,
-                rgba(255,255,255,0.1) 0%,
-                transparent 20%,
-                transparent 80%,
-                rgba(0,0,0,0.2) 100%
-            );
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(255,255,255,0.08) 0%,
+                    transparent 15%,
+                    transparent 85%,
+                    rgba(0,0,0,0.25) 100%
+                ),
+                radial-gradient(
+                    ellipse at 20% 30%,
+                    rgba(255,255,255,0.12) 0%,
+                    transparent 50%
+                ),
+                radial-gradient(
+                    ellipse at 80% 70%,
+                    rgba(0,0,0,0.15) 0%,
+                    transparent 40%
+                );
             pointer-events: none;
             z-index: 5;
         }
@@ -313,11 +352,21 @@
         let scrollingLineIndex = null;
         let marqueeInterval = null;
 
+        // Audio enhancement - convolver for reverb
+        let reverbNode = null;
+        let reverbEnabled = true;
+
+        // Template and Scheduler system
+        let templates = {};
+        let scheduledTasks = [];
+        let schedulerInterval = null;
+
         // Initialize audio context
         function initAudio() {
             if (!audioContext) {
                 try {
                     audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    createReverbEffect();
                 } catch (e) {
                     console.log('Audio not supported');
                     soundEnabled = false;
@@ -325,8 +374,49 @@
             }
         }
 
-        // Generate realistic mechanical click sound
-        function playClickSound() {
+        // Create reverb effect using convolver
+        function createReverbEffect() {
+            if (!audioContext || reverbNode) return;
+
+            try {
+                reverbNode = audioContext.createConvolver();
+
+                // Create impulse response for hall/station reverb
+                const sampleRate = audioContext.sampleRate;
+                const duration = 2.5; // 2.5 seconds reverb
+                const decay = 3.5; // Decay rate
+                const length = sampleRate * duration;
+                const impulse = audioContext.createBuffer(2, length, sampleRate);
+
+                const leftChannel = impulse.getChannelData(0);
+                const rightChannel = impulse.getChannelData(1);
+
+                for (let i = 0; i < length; i++) {
+                    const n = i / sampleRate;
+                    // Create realistic station hall reverb with early reflections
+                    const envelope = Math.exp(-n * decay);
+
+                    // Add some randomness for diffusion
+                    const noise = (Math.random() * 2 - 1) * envelope;
+
+                    // Early reflections (first 50ms)
+                    const earlyReflections = i < sampleRate * 0.05 ?
+                        Math.sin(i / 50) * envelope * 0.4 : 0;
+
+                    leftChannel[i] = (noise + earlyReflections) * 0.5;
+                    rightChannel[i] = (noise * 0.9 + earlyReflections * 1.1) * 0.5; // Slight stereo variation
+                }
+
+                reverbNode.buffer = impulse;
+                console.log('Reverb effect created');
+            } catch (e) {
+                console.log('Reverb creation failed:', e);
+                reverbNode = null;
+            }
+        }
+
+        // Generate realistic mechanical click sound with variation and distance
+        function playClickSound(charPosition = 0, linePosition = 0) {
             if (!soundEnabled) {
                 console.log('Sound disabled');
                 return;
@@ -341,117 +431,153 @@
                 console.log('Audio context suspended, trying to resume...');
                 audioContext.resume().then(() => {
                     console.log('Audio context resumed, playing sound');
-                    playActualSound();
+                    playActualSound(charPosition, linePosition);
                 }).catch(e => {
                     console.log('Failed to resume audio context:', e);
                 });
                 return;
             }
 
-            playActualSound();
+            playActualSound(charPosition, linePosition);
         }
 
-        function playActualSound() {
+        function playActualSound(charPosition = 0, linePosition = 0) {
             try {
                 const now = audioContext.currentTime;
 
-                // Create realistic mechanical click with multiple components
+                // Calculate position-based variations
+                // Normalize positions: charPosition (0-15), linePosition (0-5)
+                const horizontalPos = (charPosition - 7.5) / 7.5; // -1 to 1 (left to right)
+                const verticalPos = (linePosition - 2.5) / 2.5; // -1 to 1 (top to bottom)
 
-                // 1. Initial impact (sharp click)
+                // Distance from center (0 = center, 1 = corners)
+                const distance = Math.sqrt(horizontalPos * horizontalPos + verticalPos * verticalPos) / Math.sqrt(2);
+
+                // Random variation for each click (±5%)
+                const randomVariation = 0.95 + Math.random() * 0.1;
+
+                // Volume based on distance (closer = louder)
+                const distanceVolume = 1 - (distance * 0.3); // 30% max reduction
+
+                // Pitch variation based on position
+                const pitchVariation = 0.95 + (Math.random() * 0.1); // ±5% random pitch
+
+                // Create master gain for this sound with reverb routing
+                const masterGain = audioContext.createGain();
+                const dryGain = audioContext.createGain();
+                const wetGain = audioContext.createGain();
+
+                // Route to dry output
+                masterGain.connect(dryGain);
+                dryGain.connect(audioContext.destination);
+                dryGain.gain.setValueAtTime(0.7, now);
+
+                // Route to reverb (wet) if available
+                if (reverbNode && reverbEnabled) {
+                    masterGain.connect(wetGain);
+                    wetGain.connect(reverbNode);
+                    reverbNode.connect(audioContext.destination);
+                    wetGain.gain.setValueAtTime(0.25 * distanceVolume, now); // More reverb for distant sounds
+                }
+
+                // Create panner for stereo positioning
+                const panner = audioContext.createStereoPanner();
+                panner.pan.setValueAtTime(horizontalPos * 0.6, now); // 60% pan width
+
+                // 1. Initial impact (sharp click) - with variation
                 const impact = audioContext.createOscillator();
                 const impactGain = audioContext.createGain();
                 const impactFilter = audioContext.createBiquadFilter();
 
                 impact.connect(impactFilter);
                 impactFilter.connect(impactGain);
-                impactGain.connect(audioContext.destination);
+                impactGain.connect(panner);
+                panner.connect(masterGain);
 
                 impact.type = 'square';
-                impact.frequency.setValueAtTime(800, now);
-                impact.frequency.exponentialRampToValueAtTime(120, now + 0.015);
+                impact.frequency.setValueAtTime(800 * pitchVariation, now);
+                impact.frequency.exponentialRampToValueAtTime(120 * pitchVariation, now + 0.015);
 
                 impactFilter.type = 'highpass';
                 impactFilter.frequency.setValueAtTime(400, now);
 
                 impactGain.gain.setValueAtTime(0, now);
-                impactGain.gain.linearRampToValueAtTime(0.12, now + 0.002);
+                impactGain.gain.linearRampToValueAtTime(0.12 * distanceVolume * randomVariation, now + 0.002);
                 impactGain.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
 
                 impact.start(now);
                 impact.stop(now + 0.025);
 
-                // 2. Mechanical resonance (metallic ring)
+                // 2. Mechanical resonance (metallic ring) - with variation
                 const resonance = audioContext.createOscillator();
                 const resonanceGain = audioContext.createGain();
                 const resonanceFilter = audioContext.createBiquadFilter();
 
                 resonance.connect(resonanceFilter);
                 resonanceFilter.connect(resonanceGain);
-                resonanceGain.connect(audioContext.destination);
+                resonanceGain.connect(panner);
 
                 resonance.type = 'triangle';
-                resonance.frequency.setValueAtTime(1800, now + 0.005);
-                resonance.frequency.exponentialRampToValueAtTime(900, now + 0.04);
+                resonance.frequency.setValueAtTime(1800 * pitchVariation, now + 0.005);
+                resonance.frequency.exponentialRampToValueAtTime(900 * pitchVariation, now + 0.04);
 
                 resonanceFilter.type = 'bandpass';
-                resonanceFilter.frequency.setValueAtTime(1500, now);
+                resonanceFilter.frequency.setValueAtTime(1500 * pitchVariation, now);
                 resonanceFilter.Q.setValueAtTime(8, now);
 
                 resonanceGain.gain.setValueAtTime(0, now + 0.005);
-                resonanceGain.gain.linearRampToValueAtTime(0.06, now + 0.01);
+                resonanceGain.gain.linearRampToValueAtTime(0.06 * distanceVolume * randomVariation, now + 0.01);
                 resonanceGain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
 
                 resonance.start(now + 0.005);
                 resonance.stop(now + 0.06);
 
-                // 3. Damping noise (plastic/metal contact)
+                // 3. Damping noise (plastic/metal contact) - with variation
                 const noise = audioContext.createOscillator();
                 const noiseGain = audioContext.createGain();
                 const noiseFilter = audioContext.createBiquadFilter();
 
                 noise.connect(noiseFilter);
                 noiseFilter.connect(noiseGain);
-                noiseGain.connect(audioContext.destination);
+                noiseGain.connect(panner);
 
                 noise.type = 'sawtooth';
-                noise.frequency.setValueAtTime(350, now + 0.01);
-                noise.frequency.exponentialRampToValueAtTime(80, now + 0.05);
+                noise.frequency.setValueAtTime(350 * randomVariation, now + 0.01);
+                noise.frequency.exponentialRampToValueAtTime(80 * randomVariation, now + 0.05);
 
                 noiseFilter.type = 'lowpass';
                 noiseFilter.frequency.setValueAtTime(600, now);
                 noiseFilter.Q.setValueAtTime(1, now);
 
                 noiseGain.gain.setValueAtTime(0, now + 0.01);
-                noiseGain.gain.linearRampToValueAtTime(0.04, now + 0.015);
+                noiseGain.gain.linearRampToValueAtTime(0.04 * distanceVolume * randomVariation, now + 0.015);
                 noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
 
                 noise.start(now + 0.01);
                 noise.stop(now + 0.08);
 
-                // 4. Subtle motor/mechanism sound
+                // 4. Subtle motor/mechanism sound - with variation
                 const motor = audioContext.createOscillator();
                 const motorGain = audioContext.createGain();
                 const motorFilter = audioContext.createBiquadFilter();
 
                 motor.connect(motorFilter);
                 motorFilter.connect(motorGain);
-                motorGain.connect(audioContext.destination);
+                motorGain.connect(panner);
 
                 motor.type = 'sawtooth';
-                motor.frequency.setValueAtTime(60, now);
-                motor.frequency.linearRampToValueAtTime(40, now + 0.1);
+                motor.frequency.setValueAtTime(60 * randomVariation, now);
+                motor.frequency.linearRampToValueAtTime(40 * randomVariation, now + 0.1);
 
                 motorFilter.type = 'highpass';
                 motorFilter.frequency.setValueAtTime(30, now);
 
                 motorGain.gain.setValueAtTime(0, now);
-                motorGain.gain.linearRampToValueAtTime(0.02, now + 0.02);
+                motorGain.gain.linearRampToValueAtTime(0.02 * distanceVolume, now + 0.02);
                 motorGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
 
                 motor.start(now);
                 motor.stop(now + 0.12);
-
-                console.log('Authentic mechanical sound played');
 
             } catch (e) {
                 console.log('Sound generation failed:', e);
@@ -510,7 +636,7 @@
             currentTexts = ['', '', '', '', '', ''];
         }
 
-        function flipCharacter(charElement, newChar, delay = 0) {
+        function flipCharacter(charElement, newChar, delay = 0, charPosition = 0, linePosition = 0) {
             setTimeout(() => {
                 const currentChar = charElement.querySelector('.flip-top .flip-char-content').textContent;
 
@@ -523,8 +649,8 @@
                 // Add visual effect for entire sequence
                 charElement.classList.add('clicking');
 
-                // Execute flip sequence
-                executeFlipSequence(charElement, sequence, () => {
+                // Execute flip sequence with position info
+                executeFlipSequence(charElement, sequence, charPosition, linePosition, () => {
                     charElement.classList.remove('clicking');
                 });
 
@@ -571,7 +697,7 @@
             return sequence;
         }
 
-        function executeFlipSequence(charElement, sequence, onComplete) {
+        function executeFlipSequence(charElement, sequence, charPosition, linePosition, onComplete) {
             if (sequence.length === 0) {
                 onComplete();
                 return;
@@ -591,8 +717,8 @@
                 const topContent = topHalf.querySelector('.flip-char-content');
                 const bottomContent = bottomHalf.querySelector('.flip-char-content');
 
-                // Play click sound for each flip
-                playClickSound();
+                // Play click sound for each flip with position
+                playClickSound(charPosition, linePosition);
 
                 // Update the bottom content to new character (will be revealed)
                 bottomContent.textContent = step.char;
@@ -625,17 +751,17 @@
         function updateLine(lineIndex, newText, startDelay = 0) {
             const line = document.getElementById(`line${lineIndex + 1}`);
             const chars = line.querySelectorAll('.flip-char');
-            
+
             newText = newText.toUpperCase().padEnd(16, ' ').substring(0, 16);
             const oldText = currentTexts[lineIndex].padEnd(16, ' ').substring(0, 16);
-            
+
             // Only flip characters that actually changed
             chars.forEach((char, index) => {
                 if (newText[index] !== oldText[index]) {
-                    flipCharacter(char, newText[index], startDelay + index * 80);
+                    flipCharacter(char, newText[index], startDelay + index * 80, index, lineIndex);
                 }
             });
-            
+
             currentTexts[lineIndex] = newText.trimEnd();
         }
 
@@ -978,6 +1104,303 @@
             }
         }
 
+        // ====== TEMPLATE SYSTEM ======
+
+        // Built-in templates
+        const builtInTemplates = {
+            'airport-arrival': {
+                name: 'Airport Arrival',
+                description: 'Airport arrival information',
+                lines: [
+                    'FLUGHAFEN {{airport}}',
+                    '{{airline}} {{flightno}}',
+                    'ANKUNFT {{time}}',
+                    'VON {{origin}}',
+                    'GATE {{gate}}',
+                    '{{status}}'
+                ]
+            },
+            'airport-departure': {
+                name: 'Airport Departure',
+                description: 'Airport departure information',
+                lines: [
+                    'FLUGHAFEN {{airport}}',
+                    '{{airline}} {{flightno}}',
+                    'ABFLUG {{time}}',
+                    'NACH {{destination}}',
+                    'GATE {{gate}}',
+                    '{{status}}'
+                ]
+            },
+            'train-departure': {
+                name: 'Train Departure',
+                description: 'Train departure board',
+                lines: [
+                    '{{time}} {{platform}}',
+                    '{{traintype}} {{trainno}}',
+                    'NACH {{destination}}',
+                    'ÜBER {{via}}',
+                    '{{status}}',
+                    ''
+                ]
+            },
+            'welcome': {
+                name: 'Welcome Message',
+                description: 'Simple welcome message',
+                lines: [
+                    '{{line1}}',
+                    '{{line2}}',
+                    '{{line3}}',
+                    '{{line4}}',
+                    '{{line5}}',
+                    '{{line6}}'
+                ]
+            },
+            'clock': {
+                name: 'Date and Time',
+                description: 'Shows current date and time',
+                lines: [
+                    '{{datetime}}',
+                    '',
+                    '',
+                    '',
+                    '',
+                    ''
+                ]
+            }
+        };
+
+        // Initialize templates with built-in ones
+        templates = { ...builtInTemplates };
+
+        // Render template with data
+        function renderTemplate(templateName, data) {
+            const template = templates[templateName];
+            if (!template) {
+                console.error(`Template "${templateName}" not found`);
+                return null;
+            }
+
+            // Special handling for datetime
+            if (data.datetime === true) {
+                data.datetime = formatDateTime();
+            }
+
+            const renderedLines = template.lines.map(line => {
+                let rendered = line;
+                // Replace all {{variable}} placeholders
+                Object.keys(data).forEach(key => {
+                    const placeholder = `{{${key}}}`;
+                    rendered = rendered.replace(new RegExp(placeholder, 'g'), data[key] || '');
+                });
+                return rendered;
+            });
+
+            return renderedLines;
+        }
+
+        // Add or update template
+        function addTemplate(name, templateData) {
+            templates[name] = {
+                name: templateData.name || name,
+                description: templateData.description || '',
+                lines: templateData.lines || ['', '', '', '', '', '']
+            };
+            console.log(`Template "${name}" added/updated`);
+        }
+
+        // Get template
+        function getTemplate(name) {
+            return templates[name] || null;
+        }
+
+        // List all templates
+        function listTemplates() {
+            return Object.keys(templates).map(key => ({
+                id: key,
+                name: templates[key].name,
+                description: templates[key].description
+            }));
+        }
+
+        // Display using template
+        function displayTemplate(templateName, data = {}) {
+            const lines = renderTemplate(templateName, data);
+            if (!lines) return;
+
+            if (datetimeMode) {
+                stopDateTimeMode();
+            }
+
+            ensureAudioContext();
+            isAnimating = true;
+
+            updateLine(0, lines[0], 0);
+            updateLine(1, lines[1], 200);
+            updateLine(2, lines[2], 400);
+            updateLine(3, lines[3], 600);
+            updateLine(4, lines[4], 800);
+            updateLine(5, lines[5], 1000);
+
+            setTimeout(() => { isAnimating = false; }, 3500);
+        }
+
+        // ====== SCHEDULER SYSTEM ======
+
+        // Start scheduler (checks every second)
+        function startScheduler() {
+            if (schedulerInterval) return;
+
+            schedulerInterval = setInterval(() => {
+                checkScheduledTasks();
+            }, 1000);
+
+            console.log('Scheduler started');
+        }
+
+        // Stop scheduler
+        function stopScheduler() {
+            if (schedulerInterval) {
+                clearInterval(schedulerInterval);
+                schedulerInterval = null;
+                console.log('Scheduler stopped');
+            }
+        }
+
+        // Check and execute scheduled tasks
+        function checkScheduledTasks() {
+            const now = new Date();
+            const currentTime = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+            const currentDay = now.getDay(); // 0 = Sunday, 6 = Saturday
+
+            scheduledTasks.forEach((task, index) => {
+                if (!task.enabled) return;
+
+                // Check if task should run
+                let shouldRun = false;
+
+                if (task.type === 'time') {
+                    // Daily at specific time
+                    const taskTime = task.hour * 3600 + task.minute * 60;
+                    shouldRun = currentTime === taskTime;
+
+                    // Check days of week if specified
+                    if (shouldRun && task.days && task.days.length > 0) {
+                        shouldRun = task.days.includes(currentDay);
+                    }
+                } else if (task.type === 'interval') {
+                    // Interval-based
+                    if (!task.lastRun) {
+                        shouldRun = true;
+                    } else {
+                        const elapsed = now.getTime() - task.lastRun;
+                        shouldRun = elapsed >= task.interval;
+                    }
+                }
+
+                if (shouldRun) {
+                    console.log(`Executing scheduled task: ${task.name}`);
+                    executeScheduledTask(task);
+                    task.lastRun = now.getTime();
+                }
+            });
+        }
+
+        // Execute a scheduled task
+        function executeScheduledTask(task) {
+            if (task.action === 'template') {
+                displayTemplate(task.template, task.data || {});
+            } else if (task.action === 'display') {
+                window.splitflapAPI.setDisplay(
+                    task.lines[0], task.lines[1], task.lines[2],
+                    task.lines[3], task.lines[4], task.lines[5]
+                );
+            } else if (task.action === 'datetime') {
+                window.splitflapAPI.datetime(true);
+            } else if (task.action === 'clear') {
+                window.splitflapAPI.clear();
+            } else if (task.action === 'demo') {
+                window.splitflapAPI.demo();
+            } else if (task.action === 'custom' && task.callback) {
+                task.callback();
+            }
+        }
+
+        // Add scheduled task
+        function scheduleTask(taskConfig) {
+            const task = {
+                id: taskConfig.id || `task_${Date.now()}`,
+                name: taskConfig.name || 'Unnamed Task',
+                enabled: taskConfig.enabled !== false,
+                type: taskConfig.type || 'time', // 'time' or 'interval'
+                action: taskConfig.action, // 'template', 'display', 'datetime', 'clear', 'demo', 'custom'
+                ...taskConfig
+            };
+
+            // Validate task
+            if (task.type === 'time' && (task.hour === undefined || task.minute === undefined)) {
+                console.error('Time-based tasks require hour and minute');
+                return null;
+            }
+
+            if (task.type === 'interval' && !task.interval) {
+                console.error('Interval-based tasks require interval in milliseconds');
+                return null;
+            }
+
+            // Remove existing task with same ID
+            scheduledTasks = scheduledTasks.filter(t => t.id !== task.id);
+
+            // Add task
+            scheduledTasks.push(task);
+            console.log(`Scheduled task added: ${task.name}`, task);
+
+            // Start scheduler if not running
+            if (!schedulerInterval) {
+                startScheduler();
+            }
+
+            return task.id;
+        }
+
+        // Remove scheduled task
+        function removeScheduledTask(taskId) {
+            scheduledTasks = scheduledTasks.filter(t => t.id !== taskId);
+            console.log(`Scheduled task removed: ${taskId}`);
+
+            // Stop scheduler if no tasks
+            if (scheduledTasks.length === 0) {
+                stopScheduler();
+            }
+        }
+
+        // Enable/disable scheduled task
+        function toggleScheduledTask(taskId, enabled) {
+            const task = scheduledTasks.find(t => t.id === taskId);
+            if (task) {
+                task.enabled = enabled;
+                console.log(`Task ${taskId} ${enabled ? 'enabled' : 'disabled'}`);
+            }
+        }
+
+        // List all scheduled tasks
+        function listScheduledTasks() {
+            return scheduledTasks.map(t => ({
+                id: t.id,
+                name: t.name,
+                type: t.type,
+                enabled: t.enabled,
+                action: t.action
+            }));
+        }
+
+        // Clear all scheduled tasks
+        function clearScheduledTasks() {
+            scheduledTasks = [];
+            stopScheduler();
+            console.log('All scheduled tasks cleared');
+        }
+
         // API Functions
         window.splitflapAPI = {
             // Set text on a specific line (0-5)
@@ -1074,6 +1497,65 @@
             // Stop all animated modes
             stopAllModes: function() {
                 stopAllAnimatedModes();
+            },
+
+            // ====== TEMPLATE API ======
+
+            // Display content using a template
+            displayTemplate: function(templateName, data = {}) {
+                displayTemplate(templateName, data);
+            },
+
+            // Add or update a template
+            addTemplate: function(name, templateData) {
+                addTemplate(name, templateData);
+            },
+
+            // Get a template
+            getTemplate: function(name) {
+                return getTemplate(name);
+            },
+
+            // List all available templates
+            listTemplates: function() {
+                return listTemplates();
+            },
+
+            // ====== SCHEDULER API ======
+
+            // Schedule a task
+            schedule: function(taskConfig) {
+                return scheduleTask(taskConfig);
+            },
+
+            // Remove a scheduled task
+            removeSchedule: function(taskId) {
+                removeScheduledTask(taskId);
+            },
+
+            // Enable/disable a scheduled task
+            toggleSchedule: function(taskId, enabled) {
+                toggleScheduledTask(taskId, enabled);
+            },
+
+            // List all scheduled tasks
+            listSchedules: function() {
+                return listScheduledTasks();
+            },
+
+            // Clear all scheduled tasks
+            clearSchedules: function() {
+                clearScheduledTasks();
+            },
+
+            // Start the scheduler manually
+            startScheduler: function() {
+                startScheduler();
+            },
+
+            // Stop the scheduler
+            stopScheduler: function() {
+                stopScheduler();
             }
         };
 

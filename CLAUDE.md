@@ -152,6 +152,112 @@ window.splitflapAPI.datetime(true);
 // Get current state
 window.splitflapAPI.getCurrentDisplay(); // Returns array of current text
 window.splitflapAPI.isAnimating(); // Returns boolean
+
+// ====== TEMPLATES ======
+
+// List all available templates
+window.splitflapAPI.listTemplates();
+// Returns: [{ id: 'airport-arrival', name: 'Airport Arrival', description: '...' }, ...]
+
+// Display using a template
+window.splitflapAPI.displayTemplate('airport-departure', {
+  airport: 'MÜNCHEN',
+  airline: 'LH',
+  flightno: '441',
+  time: '12:30',
+  destination: 'FRANKFURT',
+  gate: 'A15',
+  status: 'PÜNKTLICH'
+});
+
+// Add custom template
+window.splitflapAPI.addTemplate('custom-welcome', {
+  name: 'Custom Welcome',
+  description: 'My custom template',
+  lines: [
+    'WELCOME {{name}}',
+    'TO {{location}}',
+    '{{message}}',
+    '',
+    '',
+    ''
+  ]
+});
+
+// Use custom template
+window.splitflapAPI.displayTemplate('custom-welcome', {
+  name: 'JOHN',
+  location: 'MUNICH',
+  message: 'ENJOY YOUR STAY'
+});
+
+// Built-in templates:
+// - 'airport-arrival': Airport arrival board
+// - 'airport-departure': Airport departure board
+// - 'train-departure': Train departure board
+// - 'welcome': Simple welcome message
+// - 'clock': Date and time display
+
+// ====== SCHEDULER ======
+
+// Schedule a task to run at specific time (daily)
+window.splitflapAPI.schedule({
+  name: 'Morning Welcome',
+  type: 'time',
+  hour: 8,
+  minute: 0,
+  action: 'template',
+  template: 'welcome',
+  data: { line1: 'GUTEN MORGEN', line2: 'GOOD MORNING' }
+});
+
+// Schedule task for specific days (0=Sunday, 6=Saturday)
+window.splitflapAPI.schedule({
+  name: 'Weekend Message',
+  type: 'time',
+  hour: 10,
+  minute: 0,
+  days: [0, 6], // Only on weekends
+  action: 'template',
+  template: 'welcome',
+  data: { line1: 'SCHÖNES WOCHENENDE' }
+});
+
+// Schedule interval-based task (every 30 minutes)
+window.splitflapAPI.schedule({
+  name: 'Update Clock',
+  type: 'interval',
+  interval: 30 * 60 * 1000, // 30 minutes in milliseconds
+  action: 'datetime'
+});
+
+// Schedule custom action
+window.splitflapAPI.schedule({
+  name: 'Custom Task',
+  type: 'interval',
+  interval: 60000, // Every minute
+  action: 'custom',
+  callback: function() {
+    console.log('Custom task executed!');
+  }
+});
+
+// List all scheduled tasks
+window.splitflapAPI.listSchedules();
+
+// Remove a scheduled task
+window.splitflapAPI.removeSchedule('task_id');
+
+// Enable/disable a scheduled task
+window.splitflapAPI.toggleSchedule('task_id', false); // Disable
+window.splitflapAPI.toggleSchedule('task_id', true);  // Enable
+
+// Clear all scheduled tasks
+window.splitflapAPI.clearSchedules();
+
+// Manually start/stop scheduler
+window.splitflapAPI.startScheduler();
+window.splitflapAPI.stopScheduler();
 ```
 
 ### URL Parameters
