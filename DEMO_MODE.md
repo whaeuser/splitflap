@@ -107,10 +107,10 @@ return msg;
 
 ## ⏱️ Timing
 
-- **Gesamtdauer**: ~27 Sekunden
+- **Modus**: Endlosschleife (läuft dauerhaft)
 - **Pro Szene**: 5 Sekunden
 - **Szenen**: 5
-- **Abschluss-Pause**: 2 Sekunden
+- **Schleife**: Beginnt nach Szene 5 wieder bei Szene 1
 
 ## 🎯 Use Cases
 
@@ -120,17 +120,12 @@ return msg;
 - **Debugging**: Überprüfen Sie die Funktionalität
 - **Training**: Lernen Sie die Farbpalette kennen
 
-## 🔄 Wiederholen
+## 🔄 Endlos-Modus
 
-Um die Demo zu wiederholen, senden Sie einfach den gleichen Befehl erneut:
-
-```bash
-# Endlosschleife (alle 30 Sekunden)
-while true; do
-  mosquitto_pub -t "splitflap/demo" -m ""
-  sleep 30
-done
-```
+Die Demo läuft **automatisch endlos** in einer Schleife:
+- Szene 1 → Szene 2 → Szene 3 → Szene 4 → Szene 5 → zurück zu Szene 1
+- Läuft kontinuierlich bis sie gestoppt wird
+- Kein erneutes Senden erforderlich
 
 ## 🎨 Farb-Bedeutungen in der Demo
 
@@ -164,25 +159,40 @@ mosquitto_pub -t "splitflap/display" -m '{
 
 ## 🛑 Demo stoppen
 
-Die Demo läuft automatisch durch und stoppt nach ~27 Sekunden. Um sie vorzeitig zu stoppen:
+Die Demo läuft **endlos** bis sie explizit gestoppt wird durch:
 
+### 1. Clear-Befehl
 ```bash
-# Display löschen
 mosquitto_pub -t "splitflap/clear" -m ""
+```
 
-# Oder eigenen Content setzen
+### 2. Eigenen Content setzen
+```bash
 mosquitto_pub -t "splitflap/display" -m '{
-  "line1": "DEMO GESTOPPT"
+  "line1": "DEMO GESTOPPT",
+  "line2": "NORMAL BETRIEB"
 }'
 ```
 
+### 3. Andere API-Befehle
+Jeder dieser Befehle stoppt automatisch die Demo:
+- `/api/display` - Setzt eigenen Content
+- `/api/clear` - Löscht Display
+- `/api/datetime` - Aktiviert DateTime-Modus
+- `window.splitflapAPI.setDisplay()` - JavaScript API
+- `window.splitflapAPI.clear()` - JavaScript Clear
+
+**Die Demo stoppt automatisch bei jedem neuen Befehl!**
+
 ## 📝 Hinweise
 
-1. **Während der Demo**: Keine anderen Befehle senden, da die Demo läuft
-2. **Animation**: Jede Szene animiert mit Flip-Effekten
-3. **Sound**: Authentische Klick-Sounds bei jeder Änderung
-4. **Farben**: Automatisch auf jede Zeile angewendet
-5. **DateTime**: Wird während der Demo deaktiviert
+1. **Endlosschleife**: Demo läuft kontinuierlich bis gestoppt
+2. **Automatisches Stoppen**: Jeder andere Befehl stoppt die Demo
+3. **Animation**: Jede Szene animiert mit Flip-Effekten
+4. **Sound**: Authentische Klick-Sounds bei jeder Änderung
+5. **Farben**: Automatisch auf jede Zeile angewendet
+6. **DateTime**: Wird während der Demo deaktiviert
+7. **Neustart**: Einfach Demo-Befehl erneut senden
 
 ## 🔗 Siehe auch
 

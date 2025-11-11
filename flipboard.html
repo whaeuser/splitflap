@@ -819,6 +819,9 @@
         }
 
         function clearDisplay() {
+            // Stoppe Demo falls läuft
+            stopDemo();
+
             if (isAnimating) return;
 
             isAnimating = true;
@@ -839,10 +842,16 @@
             updateDisplay();
         }
 
-        function startDemo() {
-            if (isAnimating) return;
+        let demoRunning = false;
+        let demoTimeout = null;
 
+        function startDemo() {
+            // Stoppe vorherige Demo falls läuft
+            stopDemo();
+
+            demoRunning = true;
             isAnimating = true;
+
             const demoSequence = [
                 {
                     lines: ['FLUGHAFEN', 'MUENCHEN', 'TERMINAL 2', 'ABFLUG', 'GATE A15', '12:30'],
@@ -869,26 +878,41 @@
             let step = 0;
 
             function nextDemoStep() {
-                if (step < demoSequence.length) {
-                    const { lines, colors } = demoSequence[step];
-
-                    updateLine(0, lines[0], 0, colors[0]);
-                    updateLine(1, lines[1], 200, colors[1]);
-                    updateLine(2, lines[2], 400, colors[2]);
-                    updateLine(3, lines[3], 600, colors[3]);
-                    updateLine(4, lines[4], 800, colors[4]);
-                    updateLine(5, lines[5], 1000, colors[5]);
-
-                    step++;
-                    setTimeout(nextDemoStep, 5000);
-                } else {
-                    setTimeout(() => {
-                        isAnimating = false;
-                    }, 2000);
+                if (!demoRunning) {
+                    isAnimating = false;
+                    return;
                 }
+
+                const { lines, colors } = demoSequence[step];
+
+                updateLine(0, lines[0], 0, colors[0]);
+                updateLine(1, lines[1], 200, colors[1]);
+                updateLine(2, lines[2], 400, colors[2]);
+                updateLine(3, lines[3], 600, colors[3]);
+                updateLine(4, lines[4], 800, colors[4]);
+                updateLine(5, lines[5], 1000, colors[5]);
+
+                step++;
+
+                // Zurück zum Anfang wenn alle Szenen durch sind (Endlosschleife)
+                if (step >= demoSequence.length) {
+                    step = 0;
+                }
+
+                // Nächste Szene nach 5 Sekunden
+                demoTimeout = setTimeout(nextDemoStep, 5000);
             }
 
             nextDemoStep();
+        }
+
+        function stopDemo() {
+            demoRunning = false;
+            if (demoTimeout) {
+                clearTimeout(demoTimeout);
+                demoTimeout = null;
+            }
+            isAnimating = false;
         }
 
         // Event Listeners
@@ -1457,6 +1481,9 @@
         window.splitflapAPI = {
             // Set text on a specific line (0-5) with optional color
             setLine: function(lineIndex, text, color = null) {
+                // Stoppe Demo falls läuft
+                stopDemo();
+
                 if (lineIndex >= 0 && lineIndex <= 5 && !isAnimating) {
                     // Prevent overwriting line 0 if datetime mode is active
                     if (lineIndex === 0 && datetimeMode) {
@@ -1470,6 +1497,9 @@
             // Set all lines at once with optional colors
             setDisplay: function(line1 = '', line2 = '', line3 = '', line4 = '', line5 = '', line6 = '',
                                 color1 = null, color2 = null, color3 = null, color4 = null, color5 = null, color6 = null) {
+                // Stoppe Demo falls läuft
+                stopDemo();
+
                 if (!isAnimating) {
                     ensureAudioContext(); // Ensure audio works for API calls
                     isAnimating = true;
