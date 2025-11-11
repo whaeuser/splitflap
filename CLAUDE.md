@@ -130,6 +130,16 @@ curl -X POST http://localhost:8001/api/clear
 
 # Start demo
 curl -X POST http://localhost:8001/api/demo
+
+# Set display with per-line colors
+curl -X POST http://localhost:8001/api/display \
+  -H "Content-Type: application/json" \
+  -d '{"line1":"ANKUNFT","line2":"LH 441","line3":"FRANKFURT","line4":"GATE B7","line5":"12:30","line6":"PÜNKTLICH","color1":"blau","color2":"hellblau","color3":"gruen","color4":"orange","color5":"gelb","color6":"gruen"}'
+
+# Alternative array format with colors
+curl -X POST http://localhost:8001/api/display \
+  -H "Content-Type: application/json" \
+  -d '{"lines":["ZEILE 1","ZEILE 2","ZEILE 3","ZEILE 4","ZEILE 5","ZEILE 6"],"colors":["rot","gruen","blau","gelb","orange","violett"]}'
 ```
 
 ### JavaScript API (window.splitflapAPI)
@@ -137,8 +147,24 @@ curl -X POST http://localhost:8001/api/demo
 // Set all six lines at once
 window.splitflapAPI.setDisplay('LINE 1', 'LINE 2', 'LINE 3', 'LINE 4', 'LINE 5', 'LINE 6');
 
+// Set all six lines with colors
+window.splitflapAPI.setDisplay(
+  'LINE 1', 'LINE 2', 'LINE 3', 'LINE 4', 'LINE 5', 'LINE 6',
+  'rot', 'gruen', 'blau', 'gelb', 'orange', 'violett'
+);
+
 // Set individual line (0-5)
 window.splitflapAPI.setLine(1, 'HELLO WORLD');
+
+// Set individual line with color
+window.splitflapAPI.setLine(1, 'HELLO WORLD', 'rot');
+
+// Set color for existing line
+window.splitflapAPI.setLineColor(0, 'blau');
+
+// Get available colors
+window.splitflapAPI.getColors();
+// Returns: ['blau', 'hellblau', 'rot', 'gruen', 'hellgruen', 'orange', 'violett', 'rosa', 'gelb', 'weiss']
 
 // Clear all lines
 window.splitflapAPI.clear();
@@ -298,3 +324,83 @@ Manual controls are hidden by default (`display: none`). To show them for debugg
 ```javascript
 document.querySelector('.controls').style.display = 'block';
 ```
+
+## Per-Line Color Control
+
+The display supports setting individual colors for each line. Available colors:
+
+- `blau` - Blue (#4A90E2)
+- `hellblau` - Light Blue (#87CEEB)
+- `rot` - Red (#E74C3C)
+- `gruen` - Green (#2ECC71)
+- `hellgruen` - Light Green (#A8E6A1)
+- `orange` - Orange (#FF8C42)
+- `violett` - Violet (#9B59B6)
+- `rosa` - Pink (#FFB6C1)
+- `gelb` - Yellow (#F1C40F)
+- `weiss` - White (#FFFFFF) - Default color
+
+### HTTP API with Colors
+```bash
+# Individual line format
+curl -X POST http://localhost:8001/api/display \
+  -H "Content-Type: application/json" \
+  -d '{
+    "line1": "ANKUNFT",
+    "line2": "LH 441",
+    "line3": "FRANKFURT",
+    "line4": "GATE B7",
+    "line5": "12:30",
+    "line6": "PÜNKTLICH",
+    "color1": "blau",
+    "color2": "hellblau",
+    "color3": "gruen",
+    "color4": "orange",
+    "color5": "gelb",
+    "color6": "gruen"
+  }'
+
+# Array format
+curl -X POST http://localhost:8001/api/display \
+  -H "Content-Type: application/json" \
+  -d '{
+    "lines": ["ZEILE 1", "ZEILE 2", "ZEILE 3", "ZEILE 4", "ZEILE 5", "ZEILE 6"],
+    "colors": ["rot", "gruen", "blau", "gelb", "orange", "violett"]
+  }'
+```
+
+### MQTT with Colors
+```bash
+mosquitto_pub -h mqtt.example.com -t "splitflap/display" \
+  -m '{
+    "line1": "ANKUNFT",
+    "line2": "LH 441",
+    "color1": "blau",
+    "color2": "gruen"
+  }'
+```
+
+### JavaScript API with Colors
+```javascript
+// Set display with colors
+window.splitflapAPI.setDisplay(
+  'LINE 1', 'LINE 2', 'LINE 3', 'LINE 4', 'LINE 5', 'LINE 6',
+  'rot', 'gruen', 'blau', 'gelb', 'orange', 'violett'
+);
+
+// Set individual line with color
+window.splitflapAPI.setLine(0, 'HELLO WORLD', 'rot');
+
+// Change color of existing line
+window.splitflapAPI.setLineColor(1, 'gruen');
+
+// Get available colors
+window.splitflapAPI.getColors();
+```
+
+**Notes:**
+- Colors are optional - lines without colors use the default white
+- Color names are case-insensitive but lowercase is recommended
+- Invalid color names default to white
+- Fully backward compatible with existing API calls
+- See `COLOR_EXAMPLES.md` for more examples and use cases

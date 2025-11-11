@@ -7,6 +7,7 @@ An authentic split-flap display simulator with realistic mechanical animations, 
 ## ✨ Features
 
 - **6-Line Display** - Each line supports up to 16 characters
+- **Per-Line Color Control** - 10 colors available (blau, hellblau, rot, gruen, hellgruen, orange, violett, rosa, gelb, weiss)
 - **Realistic Animations** - Mechanical flip animations with 3D CSS transforms
 - **Authentic Sound Effects** - Web Audio API generated clicking sounds
 - **Multiple APIs** - REST API, URL parameters, PostMessage for iframes
@@ -124,6 +125,50 @@ Content-Type: application/json
 - Format: `DD.MM.YYYY    HH:MM:SS` (date left, time right)
 - Automatically disabled when setting custom content
 
+#### Per-Line Color Control
+
+Set individual colors for each line. Available colors: `blau`, `hellblau`, `rot`, `gruen`, `hellgruen`, `orange`, `violett`, `rosa`, `gelb`, `weiss` (default).
+
+**Individual Line Format with Colors:**
+```json
+{
+  "line1": "ANKUNFT",
+  "line2": "LH 441",
+  "line3": "FRANKFURT",
+  "line4": "GATE B7",
+  "line5": "12:30",
+  "line6": "PÜNKTLICH",
+  "color1": "blau",
+  "color2": "hellblau",
+  "color3": "gruen",
+  "color4": "orange",
+  "color5": "gelb",
+  "color6": "gruen"
+}
+```
+
+**Array Format with Colors:**
+```json
+{
+  "lines": ["ZEILE 1", "ZEILE 2", "ZEILE 3", "ZEILE 4", "ZEILE 5", "ZEILE 6"],
+  "colors": ["rot", "gruen", "blau", "gelb", "orange", "violett"]
+}
+```
+
+**Available Colors:**
+- `blau` - Blue (#4A90E2)
+- `hellblau` - Light Blue (#87CEEB)
+- `rot` - Red (#E74C3C)
+- `gruen` - Green (#2ECC71)
+- `hellgruen` - Light Green (#A8E6A1)
+- `orange` - Orange (#FF8C42)
+- `violett` - Violet (#9B59B6)
+- `rosa` - Pink (#FFB6C1)
+- `gelb` - Yellow (#F1C40F)
+- `weiss` - White (#FFFFFF) - Default
+
+See [`COLOR_EXAMPLES.md`](./COLOR_EXAMPLES.md) for detailed examples and use cases.
+
 ### 🔧 API Examples
 
 #### Using cURL
@@ -155,6 +200,18 @@ curl -X POST http://localhost:8001/api/datetime \
 curl -X POST http://localhost:8001/api/datetime \
   -H "Content-Type: application/json" \
   -d '{"enable": false}'
+
+# Set display with colors
+curl -X POST http://localhost:8001/api/display \
+  -H "Content-Type: application/json" \
+  -d '{
+    "line1": "ANKUNFT",
+    "line2": "LH 441",
+    "line3": "FRANKFURT",
+    "color1": "blau",
+    "color2": "gruen",
+    "color3": "orange"
+  }'
 ```
 
 #### Using JavaScript (Browser)

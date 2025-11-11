@@ -340,7 +340,24 @@
 
     <script>
         const CHARACTERS = ' ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:-./';
+
+        // Color definitions
+        const COLORS = {
+            'blau': '#4A90E2',
+            'hellblau': '#87CEEB',
+            'rot': '#E74C3C',
+            'gruen': '#2ECC71',
+            'hellgruen': '#A8E6A1',
+            'orange': '#FF8C42',
+            'violett': '#9B59B6',
+            'rosa': '#FFB6C1',
+            'gelb': '#F1C40F',
+            'weiss': '#FFFFFF',
+            'default': '#FFFFFF'  // Default white color
+        };
+
         let currentTexts = ['', '', '', '', '', ''];
+        let currentColors = ['default', 'default', 'default', 'default', 'default', 'default'];
         let isAnimating = false;
         let soundEnabled = true;
         let audioContext = null;
@@ -748,7 +765,22 @@
             doNextFlip();
         }
 
-        function updateLine(lineIndex, newText, startDelay = 0) {
+        function setLineColor(lineIndex, colorName) {
+            if (lineIndex < 0 || lineIndex >= 6) return;
+
+            const normalizedColor = colorName ? colorName.toLowerCase() : 'default';
+            const color = COLORS[normalizedColor] || COLORS['default'];
+            currentColors[lineIndex] = normalizedColor;
+
+            const line = document.getElementById(`line${lineIndex + 1}`);
+            const chars = line.querySelectorAll('.flip-char-content');
+
+            chars.forEach(char => {
+                char.style.color = color;
+            });
+        }
+
+        function updateLine(lineIndex, newText, startDelay = 0, colorName = null) {
             const line = document.getElementById(`line${lineIndex + 1}`);
             const chars = line.querySelectorAll('.flip-char');
 
@@ -763,6 +795,11 @@
             });
 
             currentTexts[lineIndex] = newText.trimEnd();
+
+            // Set color if provided
+            if (colorName !== null) {
+                setLineColor(lineIndex, colorName);
+            }
         }
 
         function updateDisplay() {
@@ -1403,36 +1440,49 @@
 
         // API Functions
         window.splitflapAPI = {
-            // Set text on a specific line (0-5)
-            setLine: function(lineIndex, text) {
+            // Set text on a specific line (0-5) with optional color
+            setLine: function(lineIndex, text, color = null) {
                 if (lineIndex >= 0 && lineIndex <= 5 && !isAnimating) {
                     // Prevent overwriting line 0 if datetime mode is active
                     if (lineIndex === 0 && datetimeMode) {
                         console.warn('Cannot overwrite line 0 while datetime mode is active');
                         return;
                     }
-                    updateLine(lineIndex, text);
+                    updateLine(lineIndex, text, 0, color);
                 }
             },
 
-            // Set all lines at once
-            setDisplay: function(line1 = '', line2 = '', line3 = '', line4 = '', line5 = '', line6 = '') {
+            // Set all lines at once with optional colors
+            setDisplay: function(line1 = '', line2 = '', line3 = '', line4 = '', line5 = '', line6 = '',
+                                color1 = null, color2 = null, color3 = null, color4 = null, color5 = null, color6 = null) {
                 if (!isAnimating) {
                     ensureAudioContext(); // Ensure audio works for API calls
                     isAnimating = true;
 
                     // Skip line 0 if datetime mode is active, otherwise update it
                     if (!datetimeMode) {
-                        updateLine(0, line1, 0);
+                        updateLine(0, line1, 0, color1);
                     }
 
-                    updateLine(1, line2, 200);
-                    updateLine(2, line3, 400);
-                    updateLine(3, line4, 600);
-                    updateLine(4, line5, 800);
-                    updateLine(5, line6, 1000);
+                    updateLine(1, line2, 200, color2);
+                    updateLine(2, line3, 400, color3);
+                    updateLine(3, line4, 600, color4);
+                    updateLine(4, line5, 800, color5);
+                    updateLine(5, line6, 1000, color6);
                     setTimeout(() => { isAnimating = false; }, 3500);
                 }
+            },
+
+            // Set color for a specific line
+            setLineColor: function(lineIndex, colorName) {
+                if (lineIndex >= 0 && lineIndex <= 5) {
+                    setLineColor(lineIndex, colorName);
+                }
+            },
+
+            // Get available colors
+            getColors: function() {
+                return Object.keys(COLORS).filter(c => c !== 'default');
             },
 
             // Clear all lines
@@ -1614,7 +1664,9 @@
                             console.log('Received setDisplay command:', data);
                             window.splitflapAPI.setDisplay(
                                 data.line1, data.line2, data.line3,
-                                data.line4, data.line5, data.line6
+                                data.line4, data.line5, data.line6,
+                                data.color1, data.color2, data.color3,
+                                data.color4, data.color5, data.color6
                             );
                         } else if (data.action === 'clear') {
                             console.log('Received clear command');
@@ -1649,11 +1701,13 @@
                 case 'setDisplay':
                     window.splitflapAPI.setDisplay(
                         data.line1, data.line2, data.line3,
-                        data.line4, data.line5, data.line6
+                        data.line4, data.line5, data.line6,
+                        data.color1, data.color2, data.color3,
+                        data.color4, data.color5, data.color6
                     );
                     break;
                 case 'setLine':
-                    window.splitflapAPI.setLine(data.lineIndex, data.text);
+                    window.splitflapAPI.setLine(data.lineIndex, data.text, data.color);
                     break;
                 case 'clear':
                     window.splitflapAPI.clear();

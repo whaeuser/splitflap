@@ -50,6 +50,12 @@ class DisplayContent(BaseModel):
     line4: Optional[str] = Field("", max_length=16)
     line5: Optional[str] = Field("", max_length=16)
     line6: Optional[str] = Field("", max_length=16)
+    color1: Optional[str] = None
+    color2: Optional[str] = None
+    color3: Optional[str] = None
+    color4: Optional[str] = None
+    color5: Optional[str] = None
+    color6: Optional[str] = None
 
 class DisplayArray(BaseModel):
     lines: List[str] = Field(..., max_items=6)
@@ -218,17 +224,22 @@ class MQTTManager:
             # Handle different topics
             if topic.endswith('/display'):
                 lines = []
+                colors = []
                 if isinstance(data, dict):
                     # Check for array format
                     if "lines" in data:
                         lines = data["lines"][:6]
+                        # Check for colors array
+                        if "colors" in data:
+                            colors = data["colors"][:6]
                     # Check for individual line format
                     else:
                         for i in range(1, 7):
                             lines.append(data.get(f"line{i}", ""))
+                            colors.append(data.get(f"color{i}", None))
 
                 # Schedule display update
-                asyncio.run_coroutine_threadsafe(self._update_display(lines), self.loop)
+                asyncio.run_coroutine_threadsafe(self._update_display(lines, colors), self.loop)
 
             elif topic.endswith('/clear'):
                 asyncio.run_coroutine_threadsafe(self._clear_display(), self.loop)
@@ -246,7 +257,8 @@ class MQTTManager:
                     action = data["action"]
                     if action == "setDisplay":
                         lines = [data.get(f"line{i}", "") for i in range(1, 7)]
-                        asyncio.run_coroutine_threadsafe(self._update_display(lines), self.loop)
+                        colors = [data.get(f"color{i}", None) for i in range(1, 7)]
+                        asyncio.run_coroutine_threadsafe(self._update_display(lines, colors), self.loop)
                     elif action == "clear":
                         asyncio.run_coroutine_threadsafe(self._clear_display(), self.loop)
                     elif action == "demo":
@@ -266,7 +278,7 @@ class MQTTManager:
             "timestamp": time.time()
         })
 
-    async def _update_display(self, lines):
+    async def _update_display(self, lines, colors=None):
         """Update display and broadcast"""
         app_state.update_display(lines)
         app_state.datetime_mode = False
@@ -274,6 +286,8 @@ class MQTTManager:
         command = {"action": "setDisplay"}
         for i, line in enumerate(lines):
             command[f"line{i+1}"] = line
+            if colors and i < len(colors) and colors[i]:
+                command[f"color{i+1}"] = colors[i]
 
         app_state.add_command(command)
         await manager.broadcast(command)
@@ -463,10 +477,14 @@ async def poll_commands():
 async def set_display(data: dict):
     """Set display content"""
     lines = []
+    colors = []
 
     # Check if array format
     if "lines" in data and isinstance(data["lines"], list):
         lines = data["lines"][:6]  # Take max 6 lines
+        # Check for colors array
+        if "colors" in data and isinstance(data["colors"], list):
+            colors = data["colors"][:6]
     # Check if individual line format
     elif any(f"line{i}" in data for i in range(1, 7)):
         lines = [
@@ -476,6 +494,14 @@ async def set_display(data: dict):
             data.get("line4", ""),
             data.get("line5", ""),
             data.get("line6", "")
+        ]
+        colors = [
+            data.get("color1", None),
+            data.get("color2", None),
+            data.get("color3", None),
+            data.get("color4", None),
+            data.get("color5", None),
+            data.get("color6", None)
         ]
     else:
         raise HTTPException(status_code=400, detail="Invalid display data")
@@ -488,6 +514,8 @@ async def set_display(data: dict):
     command = {"action": "setDisplay"}
     for i, line in enumerate(lines):
         command[f"line{i+1}"] = line
+        if colors and i < len(colors) and colors[i]:
+            command[f"color{i+1}"] = colors[i]
     app_state.add_command(command)
 
     # Broadcast to WebSocket clients
@@ -558,12 +586,14 @@ async def websocket_endpoint(websocket: WebSocket):
 
             if action == "setDisplay":
                 lines = []
+                colors = []
                 for i in range(1, 7):
                     lines.append(data.get(f"line{i}", ""))
+                    colors.append(data.get(f"color{i}", None))
                 app_state.update_display(lines)
                 app_state.datetime_mode = False
 
-                # Broadcast to all clients
+                # Broadcast to all clients (including color data)
                 await manager.broadcast(data)
 
             elif action == "clear":

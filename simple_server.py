@@ -151,10 +151,20 @@ class SplitFlapHandler(BaseHTTPRequestHandler):
             if isinstance(lines, list) and len(lines) <= 6:
                 for i in range(6):
                     command[f'line{i+1}'] = lines[i] if i < len(lines) else ''
+                # Check for colors array
+                if 'colors' in data and isinstance(data['colors'], list):
+                    colors = data['colors']
+                    for i in range(6):
+                        if i < len(colors) and colors[i]:
+                            command[f'color{i+1}'] = colors[i]
                 return command
         elif any(f'line{i}' in data for i in range(1, 7)):
             for i in range(1, 7):
                 command[f'line{i}'] = data.get(f'line{i}', '')
+                # Check for individual colors
+                color = data.get(f'color{i}', None)
+                if color:
+                    command[f'color{i}'] = color
             return command
 
         return None
