@@ -737,8 +737,13 @@
                 // Play click sound for each flip with position
                 playClickSound(charPosition, linePosition);
 
+                // Get current line color
+                const currentColor = currentColors[linePosition];
+                const colorValue = COLORS[currentColor] || COLORS['default'];
+
                 // Update the bottom content to new character (will be revealed)
                 bottomContent.textContent = step.char;
+                bottomContent.style.color = colorValue;
 
                 // Start flip animation with appropriate timing
                 topHalf.style.animation = `flipTop ${step.duration}ms ease-in forwards`;
@@ -748,6 +753,7 @@
                 // After this flip completes, update top half and continue
                 setTimeout(() => {
                     topContent.textContent = step.char;
+                    topContent.style.color = colorValue;
 
                     // Reset animations
                     topHalf.style.animation = '';
