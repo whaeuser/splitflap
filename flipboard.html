@@ -844,25 +844,40 @@
 
             isAnimating = true;
             const demoSequence = [
-                ['FLUGHAFEN', 'MUENCHEN', 'TERMINAL 2', 'ABFLUG', 'GATE A15', '12:30'],
-                ['LH 441', 'NACH FRANKFURT', 'BOARDING NOW', 'GATE B7', 'PÜNKTLICH', ''],
-                ['AIR FRANCE', 'NACH PARIS', 'VERSPAETUNG', '+25 MINUTEN', 'GATE C3', '14:45'],
-                ['LUFTHANSA', 'NACH BERLIN', 'LETZTER AUFRUF', 'GATE A2', 'SOFORT', ''],
-                ['GUTEN FLUG', 'AUF WIEDERSEHEN', 'DANKE', 'SCHÖNEN TAG', '', '']
+                {
+                    lines: ['FLUGHAFEN', 'MUENCHEN', 'TERMINAL 2', 'ABFLUG', 'GATE A15', '12:30'],
+                    colors: ['blau', 'hellblau', 'gruen', 'orange', 'gelb', 'gruen']
+                },
+                {
+                    lines: ['LH 441', 'NACH FRANKFURT', 'BOARDING NOW', 'GATE B7', 'PÜNKTLICH', ''],
+                    colors: ['blau', 'hellblau', 'orange', 'gelb', 'gruen', null]
+                },
+                {
+                    lines: ['AIR FRANCE', 'NACH PARIS', 'VERSPAETUNG', '+25 MINUTEN', 'GATE C3', '14:45'],
+                    colors: ['blau', 'hellblau', 'rot', 'rot', 'orange', 'gelb']
+                },
+                {
+                    lines: ['LUFTHANSA', 'NACH BERLIN', 'LETZTER AUFRUF', 'GATE A2', 'SOFORT', ''],
+                    colors: ['blau', 'hellblau', 'orange', 'gelb', 'rot', null]
+                },
+                {
+                    lines: ['GUTEN FLUG', 'AUF WIEDERSEHEN', 'DANKE', 'SCHÖNEN TAG', '', ''],
+                    colors: ['gruen', 'hellblau', 'violett', 'rosa', null, null]
+                }
             ];
 
             let step = 0;
 
             function nextDemoStep() {
                 if (step < demoSequence.length) {
-                    const [line1, line2, line3, line4, line5, line6] = demoSequence[step];
+                    const { lines, colors } = demoSequence[step];
 
-                    updateLine(0, line1, 0);
-                    updateLine(1, line2, 200);
-                    updateLine(2, line3, 400);
-                    updateLine(3, line4, 600);
-                    updateLine(4, line5, 800);
-                    updateLine(5, line6, 1000);
+                    updateLine(0, lines[0], 0, colors[0]);
+                    updateLine(1, lines[1], 200, colors[1]);
+                    updateLine(2, lines[2], 400, colors[2]);
+                    updateLine(3, lines[3], 600, colors[3]);
+                    updateLine(4, lines[4], 800, colors[4]);
+                    updateLine(5, lines[5], 1000, colors[5]);
 
                     step++;
                     setTimeout(nextDemoStep, 5000);
