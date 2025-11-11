@@ -467,6 +467,9 @@
                 const dryGain = audioContext.createGain();
                 const wetGain = audioContext.createGain();
 
+                // Track all nodes for cleanup
+                const nodesToCleanup = [masterGain, dryGain, wetGain];
+
                 // Route to dry output
                 masterGain.connect(dryGain);
                 dryGain.connect(audioContext.destination);
@@ -483,6 +486,7 @@
                 // Create panner for stereo positioning
                 const panner = audioContext.createStereoPanner();
                 panner.pan.setValueAtTime(horizontalPos * 0.6, now); // 60% pan width
+                nodesToCleanup.push(panner);
 
                 // 1. Initial impact (sharp click) - with variation
                 const impact = audioContext.createOscillator();
@@ -508,6 +512,8 @@
                 impact.start(now);
                 impact.stop(now + 0.025);
 
+                nodesToCleanup.push(impact, impactGain, impactFilter);
+
                 // 2. Mechanical resonance (metallic ring) - with variation
                 const resonance = audioContext.createOscillator();
                 const resonanceGain = audioContext.createGain();
@@ -531,6 +537,8 @@
 
                 resonance.start(now + 0.005);
                 resonance.stop(now + 0.06);
+
+                nodesToCleanup.push(resonance, resonanceGain, resonanceFilter);
 
                 // 3. Damping noise (plastic/metal contact) - with variation
                 const noise = audioContext.createOscillator();
@@ -556,6 +564,8 @@
                 noise.start(now + 0.01);
                 noise.stop(now + 0.08);
 
+                nodesToCleanup.push(noise, noiseGain, noiseFilter);
+
                 // 4. Subtle motor/mechanism sound - with variation
                 const motor = audioContext.createOscillator();
                 const motorGain = audioContext.createGain();
@@ -578,6 +588,20 @@
 
                 motor.start(now);
                 motor.stop(now + 0.12);
+
+                nodesToCleanup.push(motor, motorGain, motorFilter);
+
+                // CRITICAL: Clean up all audio nodes after they finish playing
+                // This prevents memory leaks that cause tab crashes
+                setTimeout(() => {
+                    nodesToCleanup.forEach(node => {
+                        try {
+                            node.disconnect();
+                        } catch (e) {
+                            // Already disconnected, ignore
+                        }
+                    });
+                }, 200); // Clean up after all sounds have finished (longest is 120ms + buffer)
 
             } catch (e) {
                 console.log('Sound generation failed:', e);
@@ -886,8 +910,16 @@
             }
         }
 
+        let audioInteractionListenersActive = false;
+        let audioInteractionHandler = null;
+
         function setupUserInteractionListeners() {
-            function enableAudioOnInteraction(event) {
+            // Don't add listeners if already active
+            if (audioInteractionListenersActive) {
+                return;
+            }
+
+            audioInteractionHandler = function enableAudioOnInteraction(event) {
                 console.log('User interaction detected:', event.type);
 
                 if (!audioContext) {
@@ -896,6 +928,7 @@
                         console.log('Audio context created on user interaction');
                     } catch (e) {
                         console.log('Failed to create audio context:', e);
+                        removeAudioInteractionListeners();
                         return;
                     }
                 }
@@ -915,22 +948,29 @@
                     });
                 }
 
-                // Remove listeners after successful activation
-                document.removeEventListener('click', enableAudioOnInteraction);
-                document.removeEventListener('keydown', enableAudioOnInteraction);
-                document.removeEventListener('touchstart', enableAudioOnInteraction);
-                document.removeEventListener('touchend', enableAudioOnInteraction);
-
-                console.log('Audio interaction listeners removed');
-            }
+                // Remove listeners after activation attempt
+                removeAudioInteractionListeners();
+            };
 
             // Add comprehensive interaction listeners for iOS
-            document.addEventListener('click', enableAudioOnInteraction, { passive: true });
-            document.addEventListener('keydown', enableAudioOnInteraction, { passive: true });
-            document.addEventListener('touchstart', enableAudioOnInteraction, { passive: true });
-            document.addEventListener('touchend', enableAudioOnInteraction, { passive: true });
+            document.addEventListener('click', audioInteractionHandler, { passive: true });
+            document.addEventListener('keydown', audioInteractionHandler, { passive: true });
+            document.addEventListener('touchstart', audioInteractionHandler, { passive: true });
+            document.addEventListener('touchend', audioInteractionHandler, { passive: true });
 
+            audioInteractionListenersActive = true;
             console.log('Audio interaction listeners added');
+        }
+
+        function removeAudioInteractionListeners() {
+            if (audioInteractionHandler && audioInteractionListenersActive) {
+                document.removeEventListener('click', audioInteractionHandler);
+                document.removeEventListener('keydown', audioInteractionHandler);
+                document.removeEventListener('touchstart', audioInteractionHandler);
+                document.removeEventListener('touchend', audioInteractionHandler);
+                audioInteractionListenersActive = false;
+                console.log('Audio interaction listeners removed');
+            }
         }
 
         // DateTime functions
@@ -1605,11 +1645,40 @@
         }
 
         // HTTP API server communication via polling
+        let serverPollingInterval = null;
+        let consecutivePollingErrors = 0;
+        const MAX_CONSECUTIVE_ERRORS = 10;
+
         function connectToServer() {
-            function pollCommands() {
+            // Stop existing polling if any
+            if (serverPollingInterval) {
+                clearInterval(serverPollingInterval);
+                serverPollingInterval = null;
+            }
+
+            // Use setInterval instead of recursive setTimeout to prevent memory leaks
+            serverPollingInterval = setInterval(() => {
+                // Stop polling if too many consecutive errors
+                if (consecutivePollingErrors >= MAX_CONSECUTIVE_ERRORS) {
+                    console.log('Too many consecutive polling errors, stopping server polling');
+                    if (serverPollingInterval) {
+                        clearInterval(serverPollingInterval);
+                        serverPollingInterval = null;
+                    }
+                    return;
+                }
+
                 fetch('/api/commands')
-                    .then(response => response.json())
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Server response not OK');
+                        }
+                        return response.json();
+                    })
                     .then(data => {
+                        // Reset error counter on success
+                        consecutivePollingErrors = 0;
+
                         if (data.action === 'setDisplay') {
                             console.log('Received setDisplay command:', data);
                             window.splitflapAPI.setDisplay(
@@ -1628,15 +1697,21 @@
                         }
                     })
                     .catch(error => {
-                        console.error('Error polling commands:', error);
+                        consecutivePollingErrors++;
+                        // Only log every 5th error to avoid console spam
+                        if (consecutivePollingErrors % 5 === 0) {
+                            console.log('Server polling error count:', consecutivePollingErrors);
+                        }
                     });
+            }, 1000); // Poll every 1000ms (reduced from 500ms to reduce load)
+        }
 
-                // Poll every 500ms
-                setTimeout(pollCommands, 500);
+        function disconnectFromServer() {
+            if (serverPollingInterval) {
+                clearInterval(serverPollingInterval);
+                serverPollingInterval = null;
+                console.log('Server polling stopped');
             }
-
-            // Start polling
-            pollCommands();
         }
 
         // PostMessage API for iframe communication
@@ -1721,6 +1796,61 @@
                 }, 10000);
             }
         }
+
+        // Global cleanup function to prevent memory leaks
+        function cleanupAllResources() {
+            console.log('Cleaning up all resources...');
+
+            // Stop all intervals
+            stopDateTimeMode();
+            stopScrollingMode();
+            stopMarqueeMode();
+            stopScheduler();
+            disconnectFromServer();
+
+            // Remove audio interaction listeners
+            removeAudioInteractionListeners();
+
+            // Close audio context
+            if (audioContext) {
+                try {
+                    audioContext.close();
+                    audioContext = null;
+                    console.log('Audio context closed');
+                } catch (e) {
+                    console.log('Error closing audio context:', e);
+                }
+            }
+
+            // Clear reverb node
+            if (reverbNode) {
+                try {
+                    reverbNode.disconnect();
+                    reverbNode = null;
+                } catch (e) {
+                    // Already disconnected
+                }
+            }
+        }
+
+        // Add page visibility change listener to pause/resume polling
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                // Page is hidden, reduce polling or stop it
+                console.log('Page hidden, pausing polling');
+                disconnectFromServer();
+                consecutivePollingErrors = 0;
+            } else {
+                // Page is visible again, resume polling
+                console.log('Page visible, resuming polling');
+                connectToServer();
+            }
+        });
+
+        // Clean up when page is unloaded
+        window.addEventListener('beforeunload', function() {
+            cleanupAllResources();
+        });
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
