@@ -51,28 +51,52 @@ function formatCent(value) {
     return centValue + " cent";
 }
 
+// ============================================================================
 // FLEXIBLE MODUS-STEUERUNG MIT PRIORITÄT
+// ============================================================================
+// Modi:
+//   - 'm' oder 'manuell':  Keine Auto-Updates, DateTime AUS, manuelle MQTT/API
+//   - 'n' oder 'normal':   Batterie 1 & 2, DateTime EIN
+//   - 'a' oder 'alternativ': Auto & Batterie gesamt, DateTime EIN
+//   - Zahl (Sekunden):     Zeitbasiertes Umschalten, DateTime EIN
+//   - Standard:            60 Sekunden Wechsel, DateTime EIN
+//
 // global.get("displayMode") hat Vorrang vor msg.mode
+// ============================================================================
 const globalMode = global.get("displayMode");
 const mode = (globalMode !== null && globalMode !== undefined) ? globalMode : msg.mode;
 
 let showAlternative = false;
+let manualMode = false;
 
-if (mode === 'n' || mode === 'normal') {
+if (mode === 'm' || mode === 'manuell') {
+    // Manuell-Modus: Keine automatische Aktualisierung
+    // Display wird über manuelle MQTT/API Nachrichten gesteuert
+    manualMode = true;
+
+    // DateTime-Modus deaktivieren im Manuell-Modus
+    msg.payload = {
+        action: "datetime",
+        enable: false
+    };
+
+    return msg;
+
+} else if (mode === 'n' || mode === 'normal') {
     // Normal-Modus: Batterie 1 & 2
     showAlternative = false;
-    
+
 } else if (mode === 'a' || mode === 'alternativ') {
     // Alternativ-Modus: Auto & Batterie gesamt
     showAlternative = true;
-    
+
 } else if (typeof mode === 'number' && mode > 0) {
     // Zeitbasiertes Umschalten (mode = Sekunden für einen Zyklus)
     const now = Date.now();
     const cycleTimeMs = mode * 1000; // Sekunden in Millisekunden
     const currentCycle = Math.floor(now / cycleTimeMs);
     showAlternative = (currentCycle % 2) === 1;
-    
+
 } else {
     // Kein oder ungültiger Wert: Standard-Umschaltung alle 60 Sekunden
     const now = Date.now();
@@ -113,6 +137,16 @@ if (splitCharging) {
     statusText = " ".repeat(padding) + text;
 }
 
+// DateTime-Modus aktivieren in allen automatischen Modi
+// (wird nur ausgeführt wenn nicht im Manuell-Modus)
+// Sende DateTime-Enable als separate Nachricht
+const datetimeMsg = {
+    payload: {
+        action: "datetime",
+        enable: true
+    }
+};
+
 // Erstelle die JSON-Struktur
 if (showAlternative) {
     msg.payload = {
@@ -132,4 +166,5 @@ if (showAlternative) {
     };
 }
 
-return msg;
+// Gebe beide Nachrichten zurück: [datetimeMsg, displayMsg]
+return [datetimeMsg, msg];
