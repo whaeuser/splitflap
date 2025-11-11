@@ -75,10 +75,8 @@ if (mode === 'm' || mode === 'manuell') {
     manualMode = true;
 
     // DateTime-Modus deaktivieren im Manuell-Modus
-    msg.payload = {
-        action: "datetime",
-        enable: false
-    };
+    msg.payload = {};
+    msg.datetime = false;
 
     return msg;
 
@@ -137,16 +135,6 @@ if (splitCharging) {
     statusText = " ".repeat(padding) + text;
 }
 
-// DateTime-Modus aktivieren in allen automatischen Modi
-// (wird nur ausgeführt wenn nicht im Manuell-Modus)
-// Sende DateTime-Enable als separate Nachricht
-const datetimeMsg = {
-    payload: {
-        action: "datetime",
-        enable: true
-    }
-};
-
 // Erstelle die JSON-Struktur
 if (showAlternative) {
     msg.payload = {
@@ -166,5 +154,8 @@ if (showAlternative) {
     };
 }
 
-// Gebe beide Nachrichten zurück: [datetimeMsg, displayMsg]
-return [datetimeMsg, msg];
+// DateTime-Steuerung zum Payload hinzufügen
+// In allen automatischen Modi ist DateTime aktiviert
+msg.datetime = true;
+
+return msg;

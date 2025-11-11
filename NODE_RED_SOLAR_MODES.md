@@ -88,40 +88,44 @@ msg.mode = 45;
 return msg;
 ```
 
-#### 2. Function Node mit zwei Ausgängen
-Das Skript gibt nun **zwei Nachrichten** zurück:
-```javascript
-return [datetimeMsg, displayMsg];
-```
+#### 2. Function Node Output
+Das Skript gibt **eine Nachricht** zurück mit:
+- `msg.payload`: Display-Inhalt (line2-line6)
+- `msg.datetime`: Boolean für DateTime-Steuerung (true/false)
 
 **Node-RED Flow Setup:**
 ```
-[Inject/Sensor] → [Function: node-red-solar.js] → [Output 1] → [MQTT DateTime]
-                                                  → [Output 2] → [MQTT Display]
+[Inject/Sensor] → [Function: node-red-solar.js] → [Switch Node] → [MQTT Display]
+                                                         ↓
+                                                  [DateTime Check] → [MQTT DateTime]
 ```
 
-**Verbindung:**
-- **Output 1**: An MQTT-Node für DateTime-Steuerung (`splitflap/datetime`)
-- **Output 2**: An MQTT-Node für Display-Content (`splitflap/display`)
-
-#### 3. MQTT-Nachrichten
-
-**Für DateTime (Output 1):**
+**Alternative einfache Setup:**
 ```
-Topic: splitflap/datetime
-Payload: {"action":"datetime","enable":true}  // Automatische Modi
-Payload: {"action":"datetime","enable":false} // Manuell-Modus
+[Inject/Sensor] → [Function: node-red-solar.js] → [MQTT Display mit msg.payload]
 ```
 
-**Für Display (Output 2):**
+#### 3. Nachrichtenformat
+
+**Automatische Modi (Normal/Alternativ/Zeitbasiert):**
+```javascript
+msg = {
+  payload: {
+    line2: "  Connected  ",
+    line3: "Netz        1.2k",
+    line4: "Solar       3.5k",
+    line5: "Batterie 1   85%",
+    line6: "Batterie NOT 90%"
+  },
+  datetime: true  // DateTime aktiviert
+}
 ```
-Topic: splitflap/display
-Payload: {
-  "line2": "  Connected  ",
-  "line3": "Netz        1.2k",
-  "line4": "Solar       3.5k",
-  "line5": "Batterie 1   85%",
-  "line6": "Batterie NOT 90%"
+
+**Manuell-Modus:**
+```javascript
+msg = {
+  payload: {},
+  datetime: false  // DateTime deaktiviert
 }
 ```
 
@@ -226,14 +230,31 @@ return msg;
 1. **Global Variable hat Vorrang**: `global.get("displayMode")` überschreibt `msg.mode`
 2. **Standard ohne Modus**: Zeitbasiertes Umschalten alle 60 Sekunden
 3. **DateTime in Line 1**: Wird automatisch in allen Modi außer Manuell angezeigt
-4. **Zwei Outputs**: Das Skript gibt zwei Nachrichten zurück für DateTime und Display
+4. **Ein Output**: Das Skript gibt eine Nachricht zurück mit `msg.payload` und `msg.datetime`
 5. **Manuell-Modus persistent**: Bleibt aktiv bis ein anderer Modus gesetzt wird
+6. **msg.datetime**: Boolean-Flag zur DateTime-Steuerung (true = aktiviert, false = deaktiviert)
 
-## 🔄 Migration von alter Version
+## 🔄 DateTime-Steuerung in Node-RED
 
-Wenn Sie bereits einen Flow haben, müssen Sie:
+### Option 1: Einfach - Nur Display-Daten
+Verwenden Sie direkt `msg.payload` für das Display:
+```
+[Function] → [MQTT Out: splitflap/display]
+```
 
-1. **Zweiten Output hinzufügen**: Function Node hat jetzt 2 Ausgänge
-2. **Output 1 verbinden**: Mit MQTT DateTime Topic (`splitflap/datetime`)
-3. **Output 2 verbinden**: Mit MQTT Display Topic (`splitflap/display`)
-4. **Optional**: Manuell-Modus für spezielle Nachrichten nutzen
+### Option 2: Mit DateTime-Steuerung
+Verwenden Sie einen Switch-Node um DateTime zu steuern:
+```
+[Function] → [Switch: msg.datetime] → [true] → [MQTT: splitflap/datetime {"enable":true}]
+                     ↓
+                   [false] → [MQTT: splitflap/datetime {"enable":false}]
+                     ↓
+           [MQTT: splitflap/display mit msg.payload]
+```
+
+### Option 3: Change-Node für DateTime
+```
+[Function] → [Change Node] → [MQTT: splitflap/datetime]
+              ↓
+           Set msg.payload to {"enable": msg.datetime}
+```
