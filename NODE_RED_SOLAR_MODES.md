@@ -60,8 +60,8 @@ msg.mode = 30;            // Zeitbasiert (30 Sek)
 ### Automatische Modi (Normal, Alternativ, Zeitbasiert)
 - ✅ **DateTime ist AKTIVIERT**
 - Line 1 zeigt automatisch Datum und Uhrzeit
-- Format: `DD.MM.YYYY    HH:MM:SS`
-- Aktualisiert sich jede Sekunde
+- Format: `DD.MM.YYYY HH:MM` (16 Zeichen)
+- Aktualisiert sich jede Minute
 
 ### Manuell-Modus
 - ⛔ **DateTime ist DEAKTIVIERT**

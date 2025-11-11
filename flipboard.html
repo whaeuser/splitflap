@@ -1013,23 +1013,21 @@
         function formatDateTime() {
             const now = new Date();
 
-            // Format date as DD.MM.YYYY
+            // Format date as DD.MM.YYYY (10 chars)
             const day = String(now.getDate()).padStart(2, '0');
             const month = String(now.getMonth() + 1).padStart(2, '0');
             const year = now.getFullYear();
             const dateStr = `${day}.${month}.${year}`;
 
-            // Format time as HH:MM:SS
+            // Format time as HH:MM (5 chars - without seconds to fit)
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
-            const timeStr = `${hours}:${minutes}:${seconds}`;
+            const timeStr = `${hours}:${minutes}`;
 
-            // Create top line with date left, time right (16 chars total)
-            const padding = 16 - dateStr.length - timeStr.length;
-            const topLine = dateStr + ' '.repeat(Math.max(1, padding)) + timeStr;
+            // Total: 10 (date) + 1 (space) + 5 (time) = 16 chars
+            const topLine = `${dateStr} ${timeStr}`;
 
-            return topLine.substring(0, 16); // Ensure exactly 16 characters
+            return topLine; // Returns exactly 16 characters: "11.11.2025 18:14"
         }
 
         function startDateTimeMode() {
@@ -1176,7 +1174,7 @@
 
             // Only update if different from current content to avoid unnecessary animations
             if (currentTexts[0] !== dateTimeStr) {
-                updateLine(0, dateTimeStr, 0);
+                updateLine(0, dateTimeStr, 0, null);
             }
         }
 

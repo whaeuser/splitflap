@@ -120,9 +120,9 @@ Content-Type: application/json
 ```
 
 **Features:**
-- Displays current date (DD.MM.YYYY) and time (HH:MM:SS) on top line
-- Updates automatically every second
-- Format: `DD.MM.YYYY    HH:MM:SS` (date left, time right)
+- Displays current date (DD.MM.YYYY) and time (HH:MM) on top line
+- Updates automatically (checks every second, displays change every minute)
+- Format: `DD.MM.YYYY HH:MM` (exactly 16 characters)
 - Automatically disabled when setting custom content
 
 #### Per-Line Color Control
