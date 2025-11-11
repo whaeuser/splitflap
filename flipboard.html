@@ -94,15 +94,27 @@
             justify-content: center;
             font-size: 7vw;
             font-weight: bold;
-            color: #f5f5dc;
+            color: #FFFFFF; /* Default white */
             text-align: center;
             line-height: 8.25vw;
             overflow: hidden;
             text-shadow:
                 0 0.1vw 0.3vw rgba(0, 0, 0, 0.8),
-                0 0 0.2vw rgba(245, 245, 220, 0.3);
+                0 0 0.2vw currentColor;
             filter: brightness(0.98);
         }
+
+        /* Color classes for text */
+        .color-blau { color: #4A90E2 !important; }
+        .color-hellblau { color: #87CEEB !important; }
+        .color-rot { color: #E74C3C !important; }
+        .color-gruen { color: #2ECC71 !important; }
+        .color-hellgruen { color: #A8E6A1 !important; }
+        .color-orange { color: #FF8C42 !important; }
+        .color-violett { color: #9B59B6 !important; }
+        .color-rosa { color: #FFB6C1 !important; }
+        .color-gelb { color: #F1C40F !important; }
+        .color-weiss { color: #FFFFFF !important; }
 
         .flip-top {
             top: 0;
@@ -740,11 +752,18 @@
 
                 // Get current line color
                 const currentColor = currentColors[linePosition];
-                const colorValue = COLORS[currentColor] || COLORS['default'];
+                const colorClass = currentColor !== 'default' ? `color-${currentColor}` : '';
 
                 // Update the bottom content to new character (will be revealed)
                 bottomContent.textContent = step.char;
-                bottomContent.style.color = colorValue;
+
+                // Apply color class to bottom content
+                if (colorClass) {
+                    bottomContent.classList.remove('color-blau', 'color-hellblau', 'color-rot',
+                        'color-gruen', 'color-hellgruen', 'color-orange',
+                        'color-violett', 'color-rosa', 'color-gelb', 'color-weiss');
+                    bottomContent.classList.add(colorClass);
+                }
 
                 // Start flip animation with appropriate timing
                 topHalf.style.animation = `flipTop ${step.duration}ms ease-in forwards`;
@@ -754,7 +773,14 @@
                 // After this flip completes, update top half and continue
                 setTimeout(() => {
                     topContent.textContent = step.char;
-                    topContent.style.color = colorValue;
+
+                    // Apply color class to top content
+                    if (colorClass) {
+                        topContent.classList.remove('color-blau', 'color-hellblau', 'color-rot',
+                            'color-gruen', 'color-hellgruen', 'color-orange',
+                            'color-violett', 'color-rosa', 'color-gelb', 'color-weiss');
+                        topContent.classList.add(colorClass);
+                    }
 
                     // Reset animations
                     topHalf.style.animation = '';
@@ -776,14 +802,21 @@
             if (lineIndex < 0 || lineIndex >= 6) return;
 
             const normalizedColor = colorName ? colorName.toLowerCase() : 'default';
-            const color = COLORS[normalizedColor] || COLORS['default'];
             currentColors[lineIndex] = normalizedColor;
 
             const line = document.getElementById(`line${lineIndex + 1}`);
             const chars = line.querySelectorAll('.flip-char-content');
 
+            // Remove all color classes
             chars.forEach(char => {
-                char.style.color = color;
+                char.classList.remove('color-blau', 'color-hellblau', 'color-rot',
+                    'color-gruen', 'color-hellgruen', 'color-orange',
+                    'color-violett', 'color-rosa', 'color-gelb', 'color-weiss');
+
+                // Add new color class if not default
+                if (normalizedColor !== 'default') {
+                    char.classList.add(`color-${normalizedColor}`);
+                }
             });
         }
 
@@ -793,15 +826,7 @@
 
             // Set color FIRST if provided (before animation)
             if (colorName !== null) {
-                const normalizedColor = colorName.toLowerCase();
-                const color = COLORS[normalizedColor] || COLORS['default'];
-                currentColors[lineIndex] = normalizedColor;
-
-                // Apply color immediately to all characters
-                const charContents = line.querySelectorAll('.flip-char-content');
-                charContents.forEach(char => {
-                    char.style.color = color;
-                });
+                setLineColor(lineIndex, colorName);
             }
 
             newText = newText.toUpperCase().padEnd(16, ' ').substring(0, 16);
