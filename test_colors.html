@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Color Test</title>
+</head>
+<body>
+    <h1>Splitflap Color Test</h1>
+    <button onclick="testColors()">Test Colors via JavaScript API</button>
+    <button onclick="testHTTP()">Test Colors via HTTP</button>
+    <button onclick="checkColors()">Check Current Colors</button>
+
+    <div id="output"></div>
+
+    <script>
+        function testColors() {
+            const output = document.getElementById('output');
+            output.innerHTML = '<p>Opening flipboard.html and testing colors...</p>';
+
+            // Open flipboard in new window
+            const win = window.open('flipboard.html', 'splitflap');
+
+            // Wait for it to load, then set colors
+            setTimeout(() => {
+                win.splitflapAPI.setDisplay(
+                    'ZEILE 1',
+                    'ZEILE 2 GRUEN',
+                    'ZEILE 3 ROT',
+                    'ZEILE 4 BLAU',
+                    'ZEILE 5 GELB',
+                    'ZEILE 6 ORANGE',
+                    'weiss',
+                    'gruen',
+                    'rot',
+                    'blau',
+                    'gelb',
+                    'orange'
+                );
+                output.innerHTML += '<p>Colors set via JavaScript API</p>';
+
+                // Check colors after animation
+                setTimeout(() => {
+                    const colors = win.currentColors;
+                    output.innerHTML += '<p>Current colors: ' + JSON.stringify(colors) + '</p>';
+                }, 5000);
+            }, 2000);
+        }
+
+        function testHTTP() {
+            const output = document.getElementById('output');
+            output.innerHTML = '<p>Testing via HTTP API...</p>';
+
+            fetch('http://localhost:8001/api/display', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    line1: 'TEST 1',
+                    line2: 'TEST 2 GRUEN',
+                    line3: 'TEST 3 ROT',
+                    color1: 'weiss',
+                    color2: 'gruen',
+                    color3: 'rot'
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                output.innerHTML += '<p>Response: ' + JSON.stringify(data) + '</p>';
+            })
+            .catch(err => {
+                output.innerHTML += '<p>Error: ' + err.message + '</p>';
+            });
+        }
+
+        function checkColors() {
+            const output = document.getElementById('output');
+            output.innerHTML = '<p>Checking COLORS object...</p>';
+            output.innerHTML += '<pre>' + JSON.stringify({
+                blau: '#4A90E2',
+                hellblau: '#87CEEB',
+                rot: '#E74C3C',
+                gruen: '#2ECC71',
+                hellgruen: '#A8E6A1',
+                orange: '#FF8C42',
+                violett: '#9B59B6',
+                rosa: '#FFB6C1',
+                gelb: '#F1C40F',
+                weiss: '#FFFFFF'
+            }, null, 2) + '</pre>';
+        }
+    </script>
+</body>
+</html>

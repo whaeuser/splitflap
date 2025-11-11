@@ -651,6 +651,7 @@
                 }
             }
             currentTexts = ['', '', '', '', '', ''];
+            currentColors = ['default', 'default', 'default', 'default', 'default', 'default'];
         }
 
         function flipCharacter(charElement, newChar, delay = 0, charPosition = 0, linePosition = 0) {
@@ -790,6 +791,19 @@
             const line = document.getElementById(`line${lineIndex + 1}`);
             const chars = line.querySelectorAll('.flip-char');
 
+            // Set color FIRST if provided (before animation)
+            if (colorName !== null) {
+                const normalizedColor = colorName.toLowerCase();
+                const color = COLORS[normalizedColor] || COLORS['default'];
+                currentColors[lineIndex] = normalizedColor;
+
+                // Apply color immediately to all characters
+                const charContents = line.querySelectorAll('.flip-char-content');
+                charContents.forEach(char => {
+                    char.style.color = color;
+                });
+            }
+
             newText = newText.toUpperCase().padEnd(16, ' ').substring(0, 16);
             const oldText = currentTexts[lineIndex].padEnd(16, ' ').substring(0, 16);
 
@@ -801,11 +815,6 @@
             });
 
             currentTexts[lineIndex] = newText.trimEnd();
-
-            // Set color if provided
-            if (colorName !== null) {
-                setLineColor(lineIndex, colorName);
-            }
         }
 
         function updateDisplay() {

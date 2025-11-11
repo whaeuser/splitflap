@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Color Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        button { margin: 5px; padding: 10px; font-size: 14px; }
+        .info { background: #f0f0f0; padding: 10px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>Splitflap Color Test</h1>
+
+    <div class="info">
+        <p><strong>Anleitung:</strong></p>
+        <ol>
+            <li>Öffne <a href="flipboard.html" target="_blank">flipboard.html</a> in einem neuen Tab</li>
+            <li>Öffne die Browser Console (F12)</li>
+            <li>Führe diese Befehle aus:</li>
+        </ol>
+    </div>
+
+    <h2>Test-Befehle:</h2>
+
+    <h3>Test 1: Einzelne Farbe</h3>
+    <pre>window.splitflapAPI.setDisplay('', 'GRUEN TEST', '', '', '', '', null, 'gruen');</pre>
+    <button onclick="navigator.clipboard.writeText(`window.splitflapAPI.setDisplay('', 'GRUEN TEST', '', '', '', '', null, 'gruen');`)">Copy</button>
+
+    <h3>Test 2: Mehrere Farben</h3>
+    <pre>window.splitflapAPI.setDisplay('WEISS', 'GRUEN', 'ROT', 'BLAU', 'GELB', 'ORANGE', 'weiss', 'gruen', 'rot', 'blau', 'gelb', 'orange');</pre>
+    <button onclick="navigator.clipboard.writeText(`window.splitflapAPI.setDisplay('WEISS', 'GRUEN', 'ROT', 'BLAU', 'GELB', 'ORANGE', 'weiss', 'gruen', 'rot', 'blau', 'gelb', 'orange');`)">Copy</button>
+
+    <h3>Test 3: Farbe auf bestehende Zeile setzen</h3>
+    <pre>window.splitflapAPI.setLineColor(1, 'rot');</pre>
+    <button onclick="navigator.clipboard.writeText(`window.splitflapAPI.setLineColor(1, 'rot');`)">Copy</button>
+
+    <h3>Test 4: Prüfe aktuelles currentColors Array</h3>
+    <pre>console.log('Current colors:', currentColors);</pre>
+    <button onclick="navigator.clipboard.writeText(`console.log('Current colors:', currentColors);`)">Copy</button>
+
+    <h3>Test 5: Prüfe COLORS Objekt</h3>
+    <pre>console.log('COLORS:', COLORS);</pre>
+    <button onclick="navigator.clipboard.writeText(`console.log('COLORS:', COLORS);`)">Copy</button>
+
+    <h3>Test 6: Manuell Farbe setzen</h3>
+    <pre>
+document.getElementById('line2').querySelectorAll('.flip-char-content').forEach(el => {
+    el.style.color = '#2ECC71'; // Grün
+    console.log('Color set to:', el.style.color);
+});
+    </pre>
+    <button onclick="navigator.clipboard.writeText(`document.getElementById('line2').querySelectorAll('.flip-char-content').forEach(el => { el.style.color = '#2ECC71'; console.log('Color set to:', el.style.color); });`)">Copy</button>
+
+    <h2>Erwartetes Ergebnis:</h2>
+    <ul>
+        <li>Zeile 1: Weiß (#FFFFFF)</li>
+        <li>Zeile 2: Grün (#2ECC71)</li>
+        <li>Zeile 3: Rot (#E74C3C)</li>
+        <li>Zeile 4: Blau (#4A90E2)</li>
+        <li>Zeile 5: Gelb (#F1C40F)</li>
+        <li>Zeile 6: Orange (#FF8C42)</li>
+    </ul>
+
+    <h2>Verfügbare Farben:</h2>
+    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+        <div style="background: #4A90E2; padding: 10px; color: white;">blau</div>
+        <div style="background: #87CEEB; padding: 10px;">hellblau</div>
+        <div style="background: #E74C3C; padding: 10px; color: white;">rot</div>
+        <div style="background: #2ECC71; padding: 10px; color: white;">gruen</div>
+        <div style="background: #A8E6A1; padding: 10px;">hellgruen</div>
+        <div style="background: #FF8C42; padding: 10px; color: white;">orange</div>
+        <div style="background: #9B59B6; padding: 10px; color: white;">violett</div>
+        <div style="background: #FFB6C1; padding: 10px;">rosa</div>
+        <div style="background: #F1C40F; padding: 10px;">gelb</div>
+        <div style="background: #FFFFFF; padding: 10px; border: 1px solid #ccc;">weiss</div>
+    </div>
+</body>
+</html>
