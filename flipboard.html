@@ -608,6 +608,18 @@
                 motor.start(now);
                 motor.stop(now + 0.12);
 
+                // Disconnect all nodes after playback to prevent memory leaks
+                motor.onended = function() {
+                    const nodes = [
+                        impact, impactGain, impactFilter,
+                        resonance, resonanceGain, resonanceFilter,
+                        noise, noiseGain, noiseFilter,
+                        motor, motorGain, motorFilter,
+                        panner, masterGain, dryGain, wetGain
+                    ];
+                    nodes.forEach(node => { try { node.disconnect(); } catch(e) {} });
+                };
+
             } catch (e) {
                 console.log('Sound generation failed:', e);
             }
@@ -1738,11 +1750,21 @@
         }
 
         // HTTP API server communication via polling
+        let pollingTimeout = null;
+        let pollingActive = false;
+        let pollErrorCount = 0;
+
         function connectToServer() {
+            pollingActive = true;
+            pollErrorCount = 0;
+
             function pollCommands() {
+                if (!pollingActive) return;
+
                 fetch('/api/commands')
                     .then(response => response.json())
                     .then(data => {
+                        pollErrorCount = 0;
                         if (data.action === 'setDisplay') {
                             console.log('Received setDisplay command:', data);
                             window.splitflapAPI.setDisplay(
@@ -1761,17 +1783,26 @@
                             console.log('Received datetime command:', data.enable);
                             window.splitflapAPI.datetime(data.enable);
                         }
+                        if (pollingActive) pollingTimeout = setTimeout(pollCommands, 500);
                     })
                     .catch(error => {
-                        console.error('Error polling commands:', error);
+                        pollErrorCount++;
+                        // Exponential backoff: 500ms → 1s → 2s → … max 30s
+                        const delay = Math.min(500 * Math.pow(2, pollErrorCount - 1), 30000);
+                        if (pollingActive) pollingTimeout = setTimeout(pollCommands, delay);
                     });
-
-                // Poll every 500ms
-                setTimeout(pollCommands, 500);
             }
 
             // Start polling
             pollCommands();
+        }
+
+        function disconnectFromServer() {
+            pollingActive = false;
+            if (pollingTimeout) {
+                clearTimeout(pollingTimeout);
+                pollingTimeout = null;
+            }
         }
 
         // PostMessage API for iframe communication
