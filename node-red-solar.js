@@ -16,14 +16,29 @@ function formatLine(fixText, variable) {
 // Funktion zum Formatieren von Watt-Werten
 function formatWatt(value) {
     const numValue = Number(value);
-    
+
     if (isNaN(numValue)) return "0";
-    
+
     const absValue = Math.abs(numValue);
-    
+
     if (absValue >= 1000) {
         const kw = (numValue / 1000).toFixed(1);
         return kw + "k";
+    } else {
+        return Math.round(numValue).toString();
+    }
+}
+
+// Funktion zum Formatieren von Watt-Werten ohne Nachkommastellen
+function formatWattInt(value) {
+    const numValue = Number(value);
+
+    if (isNaN(numValue)) return "0";
+
+    const absValue = Math.abs(numValue);
+
+    if (absValue >= 1000) {
+        return Math.round(numValue / 1000) + "k";
     } else {
         return Math.round(numValue).toString();
     }
@@ -113,6 +128,8 @@ const bat1and2 = global.get("splitBat1and2") || 0;
 const tarifGrid = global.get("splitTarifGrid") || 0;
 const splitConnected = global.get("splitConnected") || false;
 const splitCharging = global.get("splitCharging") || false;
+const chargePower = global.get("splitChargePower") || 0;
+const consumption = global.get("splitConsumtion") || 0;
 
 // Formatiere die Werte
 const netzFormatted = formatWatt(netz);
@@ -122,6 +139,17 @@ const bat2Formatted = formatPercent(bat2);
 const carSocFormatted = formatPercent(carSoc);
 const bat1and2Formatted = formatPercent(bat1and2);
 const tarifGridFormatted = formatCent(tarifGrid);
+const chargePowerFormatted = formatWattInt(chargePower);
+const consumptionFormatted = formatWatt(consumption);
+
+// Wechsel für Ladeleistungsanzeige (alle 10 Sekunden)
+const chargeCycle = Math.floor(Date.now() / (10 * 1000));
+const showChargePower = splitCharging && (chargeCycle % 2) === 1;
+
+// Grid-Zeile: Wenn |netz| < 1000, stattdessen Verbrauch anzeigen
+const line3Content = Math.abs(netz) < 1000
+    ? formatLine("Verbrauch", consumptionFormatted)
+    : formatLine("Netz", netzFormatted);
 
 // Bestimme den Status-Text für line2 (zentriert)
 let statusText = "";
@@ -139,15 +167,17 @@ if (splitCharging) {
 if (showAlternative) {
     msg.payload = {
         line2: statusText,
-        line3: formatLine("Netz", netzFormatted),
+        line3: line3Content,
         line4: formatLine("Solar", solarFormatted),
-        line5: formatLine("Auto", carSocFormatted),
+        line5: showChargePower
+            ? formatLine("Laden", chargePowerFormatted)
+            : formatLine("Auto", carSocFormatted),
         line6: formatLine("Preis", tarifGridFormatted)
     };
 } else {
     msg.payload = {
         line2: statusText,
-        line3: formatLine("Netz", netzFormatted),
+        line3: line3Content,
         line4: formatLine("Solar", solarFormatted),
         line5: formatLine("Batterie 1", bat1Formatted),
         line6: formatLine("Batterie NOT", bat2Formatted)
