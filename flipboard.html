@@ -347,7 +347,6 @@
     <!-- Hidden controls for API access -->
     <div class="controls" style="display: none;">
         <input type="text" id="textInput" placeholder="Text eingeben..." maxlength="16">
-        <button class="sound-toggle" id="soundToggle" onclick="toggleSound()">🔊 Sound</button>
     </div>
 
     <script>
@@ -371,7 +370,7 @@
         let currentTexts = ['', '', '', '', '', ''];
         let currentColors = ['default', 'default', 'default', 'default', 'default', 'default'];
         let isAnimating = false;
-        let soundEnabled = true;
+        let soundEnabled = false;
         let audioContext = null;
         let datetimeMode = false;
         let datetimeInterval = null;
@@ -626,16 +625,13 @@
         }
 
         function toggleSound() {
-            soundEnabled = !soundEnabled;
-            const button = document.getElementById('soundToggle');
-            
+            setSoundEnabled(!soundEnabled);
+        }
+
+        function setSoundEnabled(enabled) {
+            soundEnabled = !!enabled;
             if (soundEnabled) {
                 initAudio();
-                button.textContent = '🔊 Sound';
-                button.classList.remove('muted');
-            } else {
-                button.textContent = '🔇 Stumm';
-                button.classList.add('muted');
             }
         }
 
@@ -1612,6 +1608,11 @@
                 toggleSound();
             },
 
+            // Explicitly enable or disable sound
+            setSound: function(enabled) {
+                setSoundEnabled(enabled);
+            },
+
             // Get current display state
             getCurrentDisplay: function() {
                 return [...currentTexts];
@@ -1711,19 +1712,8 @@
             // Check sound parameter
             if (params.has('sound')) {
                 const soundParam = params.get('sound').toLowerCase();
-                soundEnabled = soundParam !== 'false' && soundParam !== '0' && soundParam !== 'off';
-
-                // Update sound toggle button if it exists
-                const soundToggle = document.getElementById('soundToggle');
-                if (soundToggle) {
-                    if (soundEnabled) {
-                        soundToggle.textContent = '🔊 Sound';
-                        soundToggle.classList.remove('muted');
-                    } else {
-                        soundToggle.textContent = '🔇 Stumm';
-                        soundToggle.classList.add('muted');
-                    }
-                }
+                const enabled = soundParam !== 'false' && soundParam !== '0' && soundParam !== 'off';
+                setSoundEnabled(enabled);
             }
 
             if (params.has('line1') || params.has('line2') || params.has('line3') ||
@@ -1782,6 +1772,9 @@
                         } else if (data.action === 'datetime') {
                             console.log('Received datetime command:', data.enable);
                             window.splitflapAPI.datetime(data.enable);
+                        } else if (data.action === 'setSound') {
+                            console.log('Received setSound command:', data.enabled);
+                            window.splitflapAPI.setSound(data.enabled);
                         }
                         if (pollingActive) pollingTimeout = setTimeout(pollCommands, 500);
                     })
@@ -1831,6 +1824,9 @@
                     break;
                 case 'toggleSound':
                     window.splitflapAPI.toggleSound();
+                    break;
+                case 'setSound':
+                    window.splitflapAPI.setSound(data.enabled);
                     break;
                 case 'getState':
                     event.source.postMessage({
