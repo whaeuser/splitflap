@@ -63,6 +63,9 @@ class DisplayArray(BaseModel):
 class DateTimeMode(BaseModel):
     enable: bool = True
 
+class SoundMode(BaseModel):
+    enable: bool = True
+
 class StatusResponse(BaseModel):
     status: str
     display: str
@@ -186,7 +189,8 @@ class MQTTManager:
                 f"{MQTT_TOPIC_PREFIX}/display",
                 f"{MQTT_TOPIC_PREFIX}/clear",
                 f"{MQTT_TOPIC_PREFIX}/demo",
-                f"{MQTT_TOPIC_PREFIX}/datetime"
+                f"{MQTT_TOPIC_PREFIX}/datetime",
+                f"{MQTT_TOPIC_PREFIX}/sound"
             ]
             for topic in topics:
                 client.subscribe(topic, qos=MQTT_QOS)
@@ -251,6 +255,10 @@ class MQTTManager:
                 enable = data.get("enable", True) if isinstance(data, dict) else True
                 asyncio.run_coroutine_threadsafe(self._set_datetime(enable), self.loop)
 
+            elif topic.endswith('/sound'):
+                enable = data.get("enable", True) if isinstance(data, dict) else True
+                asyncio.run_coroutine_threadsafe(self._set_sound(enable), self.loop)
+
             elif topic.endswith('/command'):
                 # Generic command handler
                 if isinstance(data, dict) and "action" in data:
@@ -265,6 +273,8 @@ class MQTTManager:
                         asyncio.run_coroutine_threadsafe(self._start_demo(), self.loop)
                     elif action == "datetime":
                         asyncio.run_coroutine_threadsafe(self._set_datetime(data.get("enable", True)), self.loop)
+                    elif action == "setSound":
+                        asyncio.run_coroutine_threadsafe(self._set_sound(data.get("enabled", True)), self.loop)
 
         except Exception as e:
             print(f"Error processing MQTT message: {e}")
@@ -323,6 +333,12 @@ class MQTTManager:
         await manager.broadcast(command)
 
         self.publish_status()
+
+    async def _set_sound(self, enable: bool):
+        """Set sound mode and broadcast"""
+        command = {"action": "setSound", "enabled": enable}
+        app_state.add_command(command)
+        await manager.broadcast(command)
 
     def publish_status(self):
         """Publish current display state to MQTT"""
@@ -567,6 +583,16 @@ async def set_datetime_mode(mode: DateTimeMode):
     status = "enabled" if mode.enable else "disabled"
     return SuccessResponse(message=f"DateTime {status}")
 
+@app.post("/api/sound", response_model=SuccessResponse)
+async def set_sound_mode(mode: SoundMode):
+    """Enable or disable click sound"""
+    command = {"action": "setSound", "enabled": mode.enable}
+    app_state.add_command(command)
+    await manager.broadcast(command)
+
+    status = "enabled" if mode.enable else "disabled"
+    return SuccessResponse(message=f"Sound {status}")
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for real-time communication"""
@@ -609,6 +635,10 @@ async def websocket_endpoint(websocket: WebSocket):
                 enable = data.get("enable", True)
                 app_state.datetime_mode = enable
                 await manager.broadcast({"action": "datetime", "enable": enable})
+
+            elif action == "setSound":
+                enabled = data.get("enabled", True)
+                await manager.broadcast({"action": "setSound", "enabled": enabled})
 
             elif action == "getState":
                 await websocket.send_json({
