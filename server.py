@@ -148,6 +148,13 @@ class AppState:
         self.command_queue = deque()
         self.current_display = ["", "", "", "", "", ""]
         self.datetime_mode = False
+        self.server_started = time.time()
+        self.last_poll = None
+        self.poll_count = 0
+
+    def record_poll(self):
+        self.last_poll = time.time()
+        self.poll_count += 1
 
     def add_command(self, command: dict):
         self.command_queue.append(command)
@@ -487,7 +494,28 @@ async def get_display():
 @app.get("/api/commands")
 async def poll_commands():
     """Polling endpoint for commands (legacy support)"""
+    app_state.record_poll()
     return app_state.get_command()
+
+@app.get("/api/health")
+async def health():
+    """Liveness/health endpoint — shows when the browser last polled.
+
+    last_poll_seconds_ago > 5 typically means the browser is frozen,
+    crashed, or disconnected.
+    """
+    now = time.time()
+    last_poll_ago = (now - app_state.last_poll) if app_state.last_poll else None
+    browser_alive = last_poll_ago is not None and last_poll_ago < 5
+
+    return {
+        "status": "alive" if browser_alive else "no_browser",
+        "browser_alive": browser_alive,
+        "last_poll_seconds_ago": round(last_poll_ago, 2) if last_poll_ago is not None else None,
+        "polls_total": app_state.poll_count,
+        "uptime_seconds": round(now - app_state.server_started, 2),
+        "websocket_clients": len(manager.active_connections),
+    }
 
 @app.post("/api/display", response_model=SuccessResponse)
 async def set_display(data: dict):
