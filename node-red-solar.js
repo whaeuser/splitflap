@@ -163,6 +163,24 @@ if (splitCharging) {
     statusText = " ".repeat(padding) + text;
 }
 
+// StundenPlanStart am rechten Rand anzeigen:
+// Nur Mo-Fr, zwischen 19:30 und 10:00 (über Mitternacht)
+const stundenPlanStart = global.get("splitStundenPlanStart");
+if (stundenPlanStart !== null && stundenPlanStart !== undefined && stundenPlanStart !== "") {
+    const now = new Date();
+    const day = now.getDay(); // 0=So, 1-5=Mo-Fr, 6=Sa
+    const minutes = now.getHours() * 60 + now.getMinutes();
+    const isWeekday = day >= 1 && day <= 5;
+    const isNightTime = minutes >= (19 * 60 + 30) || minutes < (10 * 60);
+
+    if (isWeekday && isNightTime) {
+        const valueStr = String(stundenPlanStart);
+        const padded = statusText.padEnd(16, " ");
+        const cutLength = Math.max(0, 16 - valueStr.length);
+        statusText = padded.substring(0, cutLength) + valueStr.substring(0, 16);
+    }
+}
+
 // Erstelle die JSON-Struktur
 if (showAlternative) {
     msg.payload = {
