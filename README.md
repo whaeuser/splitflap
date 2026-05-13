@@ -1,8 +1,8 @@
-# 🛩️ Split-Flap Display
+# 🛩️ Split-Flap Display v2.1
 
 An authentic split-flap display simulator with realistic mechanical animations, sound effects, and comprehensive API control. Perfect for creating retro airport/train station displays or digital signage with that classic flip-board charm.
 
-![Split-Flap Display](https://img.shields.io/badge/Lines-6-blue) ![API](https://img.shields.io/badge/API-REST-green) ![Browser](https://img.shields.io/badge/Browser-Compatible-orange)
+![Version](https://img.shields.io/badge/version-2.1.0-blue) ![API](https://img.shields.io/badge/API-REST+WebSocket+MQTT-green) ![Python](https://img.shields.io/badge/python-3.8+-blue) ![Browser](https://img.shields.io/badge/Browser-Compatible-orange)
 
 ## ✨ Features
 
@@ -10,9 +10,12 @@ An authentic split-flap display simulator with realistic mechanical animations, 
 - **Per-Line Color Control** - 10 colors available (blau, hellblau, rot, gruen, hellgruen, orange, violett, rosa, gelb, weiss)
 - **Realistic Animations** - Mechanical flip animations with 3D CSS transforms
 - **Authentic Sound Effects** - Web Audio API generated clicking sounds
-- **Multiple APIs** - REST API, URL parameters, PostMessage for iframes
+- **Modern Backend** - FastAPI server with async support, rate limiting and optional API key auth
+- **WebSocket Support** - Real-time bidirectional updates (auto-fallback to polling)
+- **MQTT Integration** - IoT-ready, compatible with Home Assistant, Node-RED, openHAB
+- **Multiple APIs** - REST, WebSocket, MQTT, URL parameters, PostMessage for iframes
+- **Docker Ready** - Container deployment via Dockerfile / docker-compose
 - **Fullscreen Mode** - Clean black background, no UI controls
-- **Real-time Updates** - Polling-based server communication
 - **Demo Sequences** - Built-in airport/station announcements
 - **Responsive Design** - Scales to any screen size
 
@@ -24,18 +27,50 @@ git clone https://github.com/whaeuser/splitflap.git
 cd splitflap
 ```
 
-### 2. Start the Server
-```bash
-# Using the start script (default port 8001)
-./start_server.sh
+### 2. Start the Server (v2 – current version)
 
-# Or directly with Python (custom port)
-python3 simple_server.py 8001
+The v2 FastAPI server (`server.py`) is the current and recommended backend.
+It supports REST, WebSocket and MQTT.
+
+```bash
+# Easiest: use the v2 start script (creates venv, installs deps, starts on port 8001)
+./start_server_v2.sh
+
+# Or with a custom port
+./start_server_v2.sh 8080
+
+# Or manually
+python3 -m venv venv
+source venv/bin/activate            # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python3 server.py                   # default port 8001
+
+# Or via npm
+npm start
+```
+
+**With MQTT:**
+```bash
+cp .env.example .env
+# Edit .env and set MQTT_BROKER, MQTT_PORT, MQTT_USERNAME, MQTT_PASSWORD, ...
+./start_server_v2.sh
+```
+
+**With Docker:**
+```bash
+docker-compose up -d
+# or
+docker build -t splitflap .
+docker run -p 8001:8001 splitflap
 ```
 
 ### 3. Open in Browser
 - **Display:** `http://localhost:8001/` - Main split-flap display
+- **Admin UI:** `http://localhost:8001/admin` - Live status / MQTT panel
 - **API Docs:** `http://localhost:8001/docs` - Interactive Swagger UI documentation
+
+> **Legacy v1 server (reference only):** the original `simple_server.py` / `start_server.sh`
+> is kept for reference. See [Legacy v1 Server](#-legacy-v1-server-reference) at the bottom of this file.
 
 ## 📡 API Documentation
 
@@ -48,14 +83,37 @@ python3 simple_server.py 8001
 ```bash
 GET /api/status
 ```
-**Response:**
+**Response (v2):**
 ```json
 {
   "status": "ready",
   "display": "split-flap",
-  "lines": 6
+  "lines": 6,
+  "version": "2.1.0",
+  "features": ["websocket", "polling", "datetime", "demo", "rate-limiting", "mqtt"],
+  "mqtt_enabled": true,
+  "mqtt_connected": true
 }
 ```
+
+#### Get Current Display State (v2)
+```bash
+GET /api/display
+```
+**Response:**
+```json
+{
+  "lines": ["LINE 1", "LINE 2", "", "", "", ""],
+  "datetime_mode": false,
+  "timestamp": 1234567890.123
+}
+```
+
+#### Health Check (v2)
+```bash
+GET /api/health
+```
+Used to detect a frozen/unresponsive browser client.
 
 #### Set Display Content
 ```bash
@@ -124,6 +182,17 @@ Content-Type: application/json
 - Updates automatically (checks every second, displays change every minute)
 - Format: `DD.MM.YYYY HH:MM` (exactly 16 characters)
 - Automatically disabled when setting custom content
+
+#### Toggle Sound (v2)
+```bash
+POST /api/sound
+Content-Type: application/json
+
+{
+  "enable": false
+}
+```
+Audio is opt-in via API. Useful to mitigate browser audio crashes on long-running displays.
 
 #### Per-Line Color Control
 
@@ -300,6 +369,73 @@ http://localhost:8001/?sound=0
 http://localhost:8001/?sound=true
 ```
 
+### 🔌 WebSocket API (v2)
+
+Connect to `ws://localhost:8001/ws` for real-time bidirectional updates.
+
+```javascript
+const ws = new WebSocket('ws://localhost:8001/ws');
+
+// Set display
+ws.send(JSON.stringify({ action: 'setDisplay', line1: 'HELLO', line2: 'WORLD' }));
+
+// Clear display
+ws.send(JSON.stringify({ action: 'clear' }));
+
+// Get current state
+ws.send(JSON.stringify({ action: 'getState' }));
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log('Received:', data);
+};
+```
+
+The browser client automatically falls back to polling if WebSocket is not available.
+
+### 📡 MQTT API (v2)
+
+Full IoT integration via an MQTT broker. Configure in `.env`:
+
+```bash
+MQTT_BROKER=mqtt.example.com
+MQTT_PORT=1883
+MQTT_USERNAME=user
+MQTT_PASSWORD=pass
+MQTT_TOPIC_PREFIX=splitflap
+```
+
+**Quick Example:**
+```bash
+mosquitto_pub -t "splitflap/display" -m '{"line1":"HELLO","line2":"MQTT"}'
+mosquitto_sub -t "splitflap/status" -v
+```
+
+**Supported Topics:**
+- `splitflap/command` – Generic commands
+- `splitflap/display` – Set display content
+- `splitflap/clear` – Clear display
+- `splitflap/demo` – Start demo
+- `splitflap/datetime` – DateTime mode
+- `splitflap/status` – Status updates (published)
+- `splitflap/event` – Event notifications (published)
+
+📖 See [`MQTT.md`](./MQTT.md) for the complete MQTT integration guide.
+
+### 🔒 Security (v2)
+
+**Optional API Key** – set in `.env`:
+```bash
+SPLITFLAP_API_KEY=your-secret-key
+```
+Then include it in requests:
+```bash
+curl -H "X-API-Key: your-secret-key" http://localhost:8001/api/status
+```
+
+**Rate Limiting** – default 100 requests / 60s per IP, configurable via
+`RATE_LIMIT_REQUESTS` and `RATE_LIMIT_WINDOW` in `.env`.
+
 ### 📨 PostMessage API (iframe)
 
 For embedding in other applications:
@@ -345,10 +481,12 @@ The display automatically scales to fit different screen sizes:
 
 ## 🏗️ Architecture
 
-- **Frontend**: Pure HTML/CSS/JavaScript with no dependencies
-- **Backend**: Python HTTP server with threading support
-- **Communication**: Polling-based real-time updates (500ms interval)
-- **Audio**: Web Audio API with multi-oscillator synthesis
+- **Frontend (v2)**: Modular HTML/CSS/JavaScript (ES6 modules) in `index.html` + `css/` + `js/`
+- **Frontend (legacy)**: Single-file `flipboard.html` (still served, fully functional)
+- **Backend (v2)**: FastAPI / async Python with WebSocket and MQTT support (`server.py`)
+- **Backend (legacy)**: Threaded Python HTTP server (`simple_server.py`) – reference only
+- **Communication**: WebSocket (preferred) with automatic polling fallback (500ms)
+- **Audio**: Web Audio API with multi-oscillator synthesis (opt-in via `/api/sound`)
 - **Animations**: CSS 3D transforms with perspective
 
 ## 📁 Project Structure
@@ -356,12 +494,27 @@ The display automatically scales to fit different screen sizes:
 ```
 splitflap/
 ├── README.md              # This file
-├── CLAUDE.md             # Development documentation
-├── api-docs.yaml         # OpenAPI/Swagger API specification
-├── swagger-ui.html       # Interactive API documentation (Swagger UI)
-├── flipboard.html        # Main display application
-├── simple_server.py      # HTTP API server
-└── start_server.sh       # Quick start script
+├── README_V2.md           # Detailed v2 release notes
+├── CLAUDE.md              # Development documentation
+├── MQTT.md                # MQTT integration guide
+├── AUTOSTART.md           # Autostart / boot setup
+├── api-docs.yaml          # OpenAPI/Swagger API specification
+├── swagger-ui.html        # Interactive API documentation (Swagger UI)
+├── index.html             # Modular frontend (v2)
+├── css/                   # Modular CSS (v2)
+├── js/                    # Modular JavaScript (v2)
+├── admin.html             # Admin UI with MQTT panel
+├── server.py              # FastAPI server (v2 – current)
+├── start_server_v2.sh     # Start script for v2 server
+├── requirements.txt       # Python dependencies (FastAPI, MQTT, ...)
+├── package.json           # NPM scripts
+├── Dockerfile             # Docker image
+├── docker-compose.yml     # Docker Compose
+├── .env.example           # Environment config template
+│
+├── flipboard.html         # Legacy single-file frontend (v1, reference)
+├── simple_server.py       # Legacy HTTP server (v1, reference)
+└── start_server.sh        # Legacy start script (v1, reference)
 ```
 
 ## 🚀 Use Cases
@@ -377,10 +530,13 @@ splitflap/
 
 ### Adding New Features
 
-1. Modify `flipboard.html` for frontend changes
-2. Update `simple_server.py` for API changes
+1. Modify `index.html` / `js/` / `css/` for frontend changes (v2 modular code)
+2. Update `server.py` for API changes (FastAPI endpoints, WebSocket, MQTT)
 3. Test with the included demo sequences
 4. Update this README with new API endpoints
+
+> Note: `flipboard.html` and `simple_server.py` are kept as the v1 reference
+> implementation and should generally **not** be modified for new features.
 
 ### Custom Animations
 
@@ -407,6 +563,25 @@ This project is open source. Feel free to use, modify, and distribute.
 
 - **Issues**: [GitHub Issues](https://github.com/whaeuser/splitflap/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/whaeuser/splitflap/discussions)
+
+## 🗄️ Legacy v1 Server (reference)
+
+The original v1 implementation is kept in the repository for reference only.
+New work should target the v2 server (`server.py`) described above.
+
+```bash
+# Legacy start script (v1)
+./start_server.sh
+
+# Or directly
+python3 simple_server.py 8001
+```
+
+- Backend: `simple_server.py` – threaded Python HTTP server (no FastAPI, no WebSocket, no MQTT)
+- Frontend: `flipboard.html` – single-file HTML application
+- The legacy REST endpoints (`/api/status`, `POST /api/display`, `/api/clear`,
+  `/api/demo`, `/api/datetime`) behave the same in v2, so existing v1 clients
+  keep working against the v2 server unchanged.
 
 ---
 
